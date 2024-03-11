@@ -89,7 +89,13 @@
 </body>
 <script>
     var WebApp = window.Telegram.WebApp;
-
+    function parse (INN) {
+        console.log(INN);
+    }
+    const myParam = urlParams.get('INN');
+    if (myParam != null) {
+        parse(INN);
+    }
     WebApp.showAlert(`Добро пожаловать, @${WebApp.WebAppUser.username}.`);
     function checkInput(input) {
 	if (input.value.length > 0) {
