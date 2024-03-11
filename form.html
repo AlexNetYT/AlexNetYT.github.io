@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Форма компании</title>
+</head>
+<body>
+    <h1>Включение в партнерскую сеть<br>АНО "Агентство Цифрового Развития"</h1>
+    <form>
+        
+
+        <input oninput="checkInput(this)"  type="text" id="company_inn" name="company_inn" placeholder="" required>
+
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_name">Название компании / ИП:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_name" name="company_name" placeholder="" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_creation_date">Дата создания компании:</label>
+        <input oninput="checkInput(this)"  type="date" id="company_creation_date" name="company_creation_date" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_legal_address">Юридический адрес компании:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_legal_address" name="company_legal_address" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_factual_address">Фактический адрес компании:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_factual_address" name="company_factual_address" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_email">Электронная почта компании:</label>
+        <input oninput="checkInput(this)"  type="email" id="company_email" name="company_email" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_website">Сайт компании:</label>
+        <input oninput="checkInput(this)"  type="url" id="company_website" name="company_website" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_business_directions">Направления деятельности:</label>
+        <textarea oninput="checkInput(this)" id="company_business_directions" name="company_business_directions" rows="4" cols="50" required></textarea>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_development_stacks">Стеки разработки:</label>
+        <textarea oninput="checkInput(this)" id="company_development_stacks" name="company_development_stacks" rows="4" cols="50" required></textarea>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_branches">Наличие филиалов и представительств:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_branches" name="company_branches" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_name">Ф.И.О. руководителя:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_ceo_name" name="company_ceo_name" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_position">Должность руководителя:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_ceo_position" name="company_ceo_position" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_phone">Контактный телефон руководителя:</label>
+        <input oninput="checkInput(this)"  type="tel" id="company_ceo_phone" name="company_ceo_phone" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_email">Электронная почта руководителя:</label>
+        <input oninput="checkInput(this)"  type="email" id="company_ceo_email" name="company_ceo_email" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_it_contact_name">Ф.И.О. контактного лица по направлению IT:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_it_contact_name" name="company_it_contact_name" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_it_contact_position">Должность контактного лица:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_it_contact_position" name="company_it_contact_position" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_it_contact_phone">Номер телефона контактного лица:</label>
+        <input oninput="checkInput(this)"  type="tel" id="company_it_contact_phone" name="company_it_contact_phone" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_it_contact_email">Электронная почта контактного лица:</label>
+        <input oninput="checkInput(this)"  type="email" id="company_it_contact_email" name="company_it_contact_email" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_revenue">Выручка компании за прошедший год, в тыс. руб.:</label>
+        <input oninput="checkInput(this)"  type="number" id="company_revenue" name="company_revenue" min="0" step="1000" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_details">Реквизиты (карточка) компании:</label>
+        <textarea id="company_details" name="company_details" rows="4" cols="50" required></textarea>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_staff_count">Общая штатная численность персонала:</label>
+        <input oninput="checkInput(this)"  type="number" id="company_staff_count" name="company_staff_count" min="0" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_developers_count">Количество программистов в штате:</label>
+        <input oninput="checkInput(this)"  type="number" id="company_developers_count" name="company_developers_count" min="0" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_1c_specialists">Наличие специалистов по 1С:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_1c_specialists" name="company_1c_specialists" required>
+        
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_notes">Примечание:</label>
+        <textarea id="company_notes" name="company_notes" rows="4" cols="50"></textarea>
+        
+        <input oninput="checkInput(this)"  type="submit" value="Отправить">
+
+    </form>
+</body>
+<script>
+    var WebApp = window.Telegram.WebApp;
+
+    WebApp.showAlert(`Добро пожаловать, @${WebApp.WebAppUser.username}.`);
+    function checkInput(input) {
+	if (input.value.length > 0) {
+		input.classList.add('not-empty');
+	} else {
+		input.classList.remove('not-empty');
+	}
+}
+</script>
+</html>
