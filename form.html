@@ -11,42 +11,43 @@
     <h1>Включение в партнерскую сеть<br>АНО "Агентство Цифрового Развития"</h1>
     <form>
         
-
-        <input oninput="checkInput(this)"  type="text" id="company_inn" name="company_inn" placeholder="" required>
+        <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_inn">ИНН:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_inn" name="company_inn" placeholder="" readonly>
 
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_name">Название компании / ИП:</label>
-        <input oninput="checkInput(this)"  type="text" id="company_name" name="company_name" placeholder="" required>
-        
+        <input oninput="checkInput(this)"  type="text" id="company_name" name="company_name" placeholder="" readonly>
+        <!-- will be automatic paste -->
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_creation_date">Дата создания компании:</label>
-        <input oninput="checkInput(this)"  type="date" id="company_creation_date" name="company_creation_date" required>
-        
+        <input oninput="checkInput(this)"  type="date" id="company_creation_date" name="company_creation_date" readonly>
+        <!-- will be automatic paste -->
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_legal_address">Юридический адрес компании:</label>
-        <input oninput="checkInput(this)"  type="text" id="company_legal_address" name="company_legal_address" required>
-        
-         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_factual_address">Фактический адрес компании:</label>
+        <input oninput="checkInput(this)"  type="text" id="company_legal_address" name="company_legal_address" readonly>
+        <!-- will be automatic paste -->
+
+        <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_factual_address">Фактический адрес компании:</label>
         <input oninput="checkInput(this)"  type="text" id="company_factual_address" name="company_factual_address" required>
-        
+
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_email">Электронная почта компании:</label>
         <input oninput="checkInput(this)"  type="email" id="company_email" name="company_email" required>
         
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_website">Сайт компании:</label>
         <input oninput="checkInput(this)"  type="url" id="company_website" name="company_website" required>
-        
-         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_business_directions">Направления деятельности:</label>
-        <textarea oninput="checkInput(this)" id="company_business_directions" name="company_business_directions" rows="4" cols="50" required></textarea>
-        
+        <!-- will be automatic paste -->
+         <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_business_directions">Направления деятельности (ОКВЭД):</label>
+        <textarea oninput="checkInput(this)" id="company_business_directions" name="company_business_directions" readonly></textarea>
+        <!-- will be automatic paste -->
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_development_stacks">Стеки разработки:</label>
         <textarea oninput="checkInput(this)" id="company_development_stacks" name="company_development_stacks" rows="4" cols="50" required></textarea>
         
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_branches">Наличие филиалов и представительств:</label>
         <input oninput="checkInput(this)"  type="text" id="company_branches" name="company_branches" required>
-        
+        <!-- will be automatic paste -->
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_name">Ф.И.О. руководителя:</label>
-        <input oninput="checkInput(this)"  type="text" id="company_ceo_name" name="company_ceo_name" required>
+        <input oninput="checkInput(this)"  type="text" id="company_ceo_name" name="company_ceo_name" readonly>
         
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_position">Должность руководителя:</label>
-        <input oninput="checkInput(this)"  type="text" id="company_ceo_position" name="company_ceo_position" required>
-        
+        <input oninput="checkInput(this)"  type="text" id="company_ceo_position" name="company_ceo_position" readonly>
+         <!-- will be automatic paste -->
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_ceo_phone">Контактный телефон руководителя:</label>
         <input oninput="checkInput(this)"  type="tel" id="company_ceo_phone" name="company_ceo_phone" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required>
         
@@ -83,18 +84,28 @@
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_notes">Примечание:</label>
         <textarea id="company_notes" name="company_notes" rows="4" cols="50"></textarea>
         
-        <input oninput="checkInput(this)"  type="submit" value="Отправить">
+        <input  type="submit" value="Отправить">
 
     </form>
 </body>
 <script>
     var WebApp = window.Telegram.WebApp;
-    function parse (INN) {
-        console.log(INN);
+    function parse (urlParams) {
+        document.getElementById("company_inn").value = urlParams.get('INN');
+        document.getElementById("company_name").value = urlParams.get('company_name');
+        document.getElementById("company_legal_address").value = urlParams.get('address');
+        document.getElementById("company_ceo_name").value = urlParams.get('name_of_boss');
+        document.getElementById("company_ceo_position").value = urlParams.get('post_of_boss');
+        document.getElementById("company_creation_date").value = urlParams.get('date_of_registration');
+        document.getElementById("company_business_directions").value = urlParams.get('okved');
+
     }
-    const myParam = urlParams.get('INN');
-    if (myParam != null) {
-        parse(INN);
+    const queryString = window.location.search;
+    // console.log(queryString);
+    const urlParams = new URLSearchParams(queryString);
+    let INN =  urlParams.get('INN');
+    if (INN != null) {
+        parse(urlParams);
     }
     WebApp.showAlert(`Добро пожаловать, @${WebApp.WebAppUser.username}.`);
     function checkInput(input) {
