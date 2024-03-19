@@ -84,12 +84,13 @@
          <label style="width: 100%; text-align: left; margin-left: -2%;" for="company_notes">Примечание:</label>
         <textarea id="company_notes" name="company_notes" rows="4" cols="50"></textarea>
         
-        <input  type="submit" value="Отправить">
+        <input onclick="collectInputValues()" type="submit" value="Отправить">
 
     </form>
 </body>
 <script>
-    var WebApp = window.Telegram.WebApp;
+    let tg = window.Telegram.WebApp;
+    tg.expand();
     function parse (urlParams) {
         document.getElementById("company_inn").value = urlParams.get('INN');
         document.getElementById("company_name").value = urlParams.get('company_name');
@@ -114,6 +115,30 @@
 	} else {
 		input.classList.remove('not-empty');
 	}
+    function collectInputValues() {
+        const inputValues = {};
+        const inputs = document.getElementsByTagName('input');
+        const textareas = document.getElementsByTagName('textarea');
+
+        for (let i = 0; i < inputs.length; i++) {
+            const input = inputs[i];
+            if (input.type !== 'button' && input.type !== 'submit' && input.type !== 'reset') {
+            inputValues[input.id] = input.value;
+            }
+        }
+
+        for (let i = 0; i < textareas.length; i++) {
+            const textarea = textareas[i];
+            inputValues[textarea.id] = textarea.value;
+        }
+
+        tg.send(JSON.stringify(inputValues));
+        tg.close();
+        }
+
+// Call the function when you want to collect the input values
+
+
 }
 </script>
 </html>
