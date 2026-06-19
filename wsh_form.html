@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Рабочий График</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #282828;
+            --surface-color: #323232;
+            --primary-color: #FF6E2D;
+            --secondary-color: #FEBF30;
+            --custom-color: #7D8796; /* Цвет для кастомных смен */
+            --text-main: #FFFFFF;
+            --text-sec: #7D8796;
+            --border-color: #505A64;
+            --danger-color: #FF3B30;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0; padding: 0; user-select: none; overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            padding: 16px 20px;
+            background: var(--surface-color);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .user-info .name { font-weight: 700; font-size: 16px; display: block; }
+        .user-info .role { font-size: 12px; color: var(--primary-color); font-weight: 500; }
+        .settings-btn { font-size: 20px; color: var(--text-sec); padding: 5px; }
+
+        /* Calendar */
+        .calendar-wrapper { padding: 15px; }
+        .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .month-name { font-size: 18px; font-weight: 700; }
+        .nav-btn { color: var(--primary-color); font-size: 20px; cursor: pointer; padding: 5px 15px; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+        .weekday { text-align: center; font-size: 11px; color: var(--text-sec); font-weight: 600; text-transform: uppercase; padding-bottom: 5px; }
+
+        .day {
+            aspect-ratio: 1/1; background: var(--surface-color); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 500; position: relative;
+            border: 2px solid transparent; transition: transform 0.1s;
+        }
+        .day:active { transform: scale(0.95); }
+        .day.today { border-color: var(--text-sec); }
+        .day.selected { border-color: var(--primary-color); }
+        
+        .day.shift-day { background: rgba(255, 110, 45, 0.25); color: var(--primary-color); }
+        .day.shift-night { background: rgba(254, 191, 48, 0.25); color: var(--secondary-color); }
+        .day.shift-custom { background: rgba(125, 135, 150, 0.3); color: white; }
+
+        .dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 6px; }
+        .dot-day { background: var(--primary-color); }
+        .dot-night { background: var(--secondary-color); }
+        .dot-custom { background: white; }
+
+        /* Bottom Sheet */
+        .sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; z-index: 100; }
+        .bottom-sheet {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: var(--surface-color); border-radius: 24px 24px 0 0;
+            padding: 24px; transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 101;
+        }
+        .bottom-sheet.open { transform: translateY(0); }
+
+        .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .sheet-subtitle { color: var(--text-sec); font-size: 14px; margin-bottom: 20px; }
+
+        .btn-group { display: flex; flex-direction: column; gap: 10px; }
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 14px; border-radius: 14px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
+        .btn:active { opacity: 0.7; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-secondary { background: var(--secondary-color); color: #282828; }
+        .btn-outline { background: #404040; color: white; border: 1px solid var(--border-color); }
+        .btn-danger { background: rgba(255, 59, 48, 0.15); color: var(--danger-color); width: 100%; margin-top: 10px; }
+
+        /* Custom Time Inputs */
+        #custom-time-box {
+            display: none; background: #282828; padding: 15px; border-radius: 12px; margin-top: 10px;
+            grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;
+        }
+        .time-input-group { display: flex; flex-direction: column; gap: 5px; }
+        .time-input-group label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; }
+        input[type="time"] {
+            background: #404040; border: 1px solid var(--border-color); color: white;
+            padding: 8px; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box;
+        }
+
+        /* Settings View */
+        #settings-page { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 200; display: none; padding: 20px; }
+        .setting-card { background: var(--surface-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        select { width: 100%; background: #404040; border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="main-page">
+    <div class="header">
+        <div class="user-info">
+            <span class="name" id="ui-name">Загрузка...</span>
+            <span class="role" id="ui-role">Роль не выбрана</span>
+        </div>
+        <div class="settings-btn" onclick="openSettings()"><i class="fas fa-cog"></i></div>
+    </div>
+
+    <div class="calendar-wrapper">
+        <div class="month-nav">
+            <div class="nav-btn" onclick="moveMonth(-1)"><i class="fas fa-chevron-left"></i></div>
+            <div class="month-name" id="month-display">...</div>
+            <div class="nav-btn" onclick="moveMonth(1)"><i class="fas fa-chevron-right"></i></div>
+        </div>
+        <div class="calendar-grid" id="calendar-grid"></div>
+    </div>
+</div>
+
+<!-- Страница настроек -->
+<div id="settings-page">
+    <div style="display: flex; align-items: center; margin-bottom: 24px;">
+        <i class="fas fa-arrow-left" onclick="closeSettings()" style="font-size: 20px; margin-right: 15px;"></i>
+        <h2 style="margin:0">Настройки</h2>
+    </div>
+    <div class="setting-card">
+        <label style="color: var(--text-sec); font-size: 12px;">Округ</label>
+        <select id="set-district">
+            <option>ЦАО</option><option>СЗАО</option><option>САО</option><option>СВАО</option>
+            <option>ВАО</option><option>ЮВАО</option><option>ЛЮБЕРЦЫ</option><option>ЮАО</option>
+            <option>ЮЗАО</option><option>ЗАО</option>
+        </select>
+    </div>
+    <div class="setting-card">
+        <label style="color: var(--text-sec); font-size: 12px;">Роль</label>
+        <select id="set-role" onchange="changeRole(this.value)">
+            <option value="Charger">Charger</option>
+            <option value="Ranger">Ranger</option>
+            <option value="Keeper">Keeper</option>
+            <option value="Service Car">Service Car</option>
+            <option value="Charger by scooter">Charger by scooter</option>
+        </select>
+    </div>
+    <button class="btn btn-primary" style="width: 100%" onclick="closeSettings()">СОХРАНИТЬ</button>
+</div>
+
+<div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
+
+<div class="bottom-sheet" id="sheet">
+    <div class="sheet-title" id="sheet-date">Дата</div>
+    <div class="sheet-subtitle" id="sheet-info">Выберите тип смены</div>
+    
+    <div class="btn-group">
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="applyShift('day')">ДЕНЬ</button>
+            <button class="btn btn-secondary" onclick="applyShift('night')">НОЧЬ</button>
+        </div>
+        <button class="btn btn-outline" onclick="toggleCustomTime()">СВОЁ ВРЕМЯ</button>
+        
+        <div id="custom-time-box">
+            <div class="time-input-group">
+                <label>Начало</label>
+                <input type="time" id="t-start" value="12:00">
+            </div>
+            <div class="time-input-group">
+                <label>Конец</label>
+                <input type="time" id="t-end" value="22:00">
+            </div>
+            <button class="btn btn-primary" style="grid-column: span 2; margin-top: 5px;" onclick="applyCustomShift()">ПОДТВЕРДИТЬ</button>
+        </div>
+
+        <button class="btn btn-danger" id="btn-cancel-shift" style="display: none;" onclick="cancelShiftPrompt()">УДАЛИТЬ СМЕНУ</button>
+    </div>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const ROLE_TIMES = {
+        'Charger': { day: '09:00 - 21:00', night: '21:00 - 09:00' },
+        'Ranger': { day: '08:00 - 20:00', night: '20:00 - 08:00' },
+        'Charger by scooter': { day: '09:00 - 21:00', night: '21:00 - 09:00' },
+        'Keeper': { day: '08:00 - 20:00', night: '20:00 - 08:00' },
+        'Service Car': { day: '08:00 - 20:00', night: '20:00 - 08:00' }
+    };
+
+    let state = {
+        name: "Сотрудник", role: "Ranger", schedule: {}, 
+        viewDate: new Date(), selectedDate: null
+    };
+
+    function init() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('days')) state.schedule = JSON.parse(params.get('days'));
+        if (params.has('name')) state.name = params.get('name');
+        if (params.has('role')) state.role = params.get('role');
+
+        document.getElementById('ui-name').innerText = state.name;
+        document.getElementById('ui-role').innerText = state.role;
+        document.getElementById('set-role').value = state.role;
+
+        renderCalendar();
+        
+        tg.MainButton.setParams({ text: 'СОХРАНИТЬ В БОТЕ', color: '#FF6E2D' });
+        tg.MainButton.onClick(() => {
+            const result = {
+                days: JSON.stringify(state.schedule),
+                role: state.role,
+                district: document.getElementById('set-district').value,
+                edited_at: new Date().toLocaleString()
+            };
+            tg.sendData(JSON.stringify(result));
+        });
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        grid.innerHTML = '';
+        const year = state.viewDate.getFullYear();
+        const month = state.viewDate.getMonth();
+        
+        const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+        document.getElementById('month-display').innerText = `${monthNames[month]} ${year}`;
+
+        ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(d => {
+            const el = document.createElement('div'); el.className = 'weekday'; el.innerText = d; grid.appendChild(el);
+        });
+
+        const firstDay = new Date(year, month, 1).getDay();
+        const offset = firstDay === 0 ? 6 : firstDay - 1;
+        const totalDays = new Date(year, month + 1, 0).getDate();
+
+        for(let i=0; i<offset; i++) grid.appendChild(document.createElement('div'));
+
+        for(let d=1; d<=totalDays; d++) {
+            const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dayEl = document.createElement('div');
+            dayEl.className = 'day'; dayEl.innerText = d;
+
+            if (state.schedule[dateKey]) {
+                const shift = state.schedule[dateKey];
+                if(shift.type === 'day') dayEl.classList.add('shift-day');
+                else if(shift.type === 'night') dayEl.classList.add('shift-night');
+                else dayEl.classList.add('shift-custom');
+                
+                const dot = document.createElement('div');
+                dot.className = `dot dot-${shift.type}`;
+                dayEl.appendChild(dot);
+            }
+
+            if(new Date().toDateString() === new Date(year, month, d).toDateString()) dayEl.classList.add('today');
+
+            dayEl.onclick = () => openDay(dateKey);
+            grid.appendChild(dayEl);
+        }
+    }
+
+    function openDay(date) {
+        state.selectedDate = date;
+        tg.HapticFeedback.impactOccurred('light');
+        document.getElementById('custom-time-box').style.display = 'none';
+        
+        const shift = state.schedule[date];
+        document.getElementById('sheet-date').innerText = new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        
+        if (shift) {
+            let label = shift.type === 'day' ? '☀️ Дневная' : (shift.type === 'night' ? '🌙 Ночная' : '⚙️ Своя');
+            document.getElementById('sheet-info').innerText = `${label} (${shift.time})`;
+            document.getElementById('btn-cancel-shift').style.display = 'block';
+        } else {
+            document.getElementById('sheet-info').innerText = 'Смена не назначена';
+            document.getElementById('btn-cancel-shift').style.display = 'none';
+        }
+
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('sheet').classList.add('open');
+    }
+
+    function applyShift(type) {
+        const times = ROLE_TIMES[state.role];
+        state.schedule[state.selectedDate] = {
+            type: type,
+            time: type === 'day' ? times.day : times.night,
+            role: state.role
+        };
+        finishSelection();
+    }
+
+    function toggleCustomTime() {
+        const box = document.getElementById('custom-time-box');
+        box.style.display = box.style.display === 'grid' ? 'none' : 'grid';
+    }
+
+    function applyCustomShift() {
+        const start = document.getElementById('t-start').value;
+        const end = document.getElementById('t-end').value;
+        if(!start || !end) return;
+
+        state.schedule[state.selectedDate] = {
+            type: 'custom',
+            time: `${start} - ${end}`,
+            role: state.role
+        };
+        finishSelection();
+    }
+
+    function finishSelection() {
+        closeSheet();
+        renderCalendar();
+        tg.MainButton.show();
+    }
+
+    function cancelShiftPrompt() {
+        tg.showPopup({
+            title: 'Удалить смену?',
+            message: 'Смена будет стерта из графика.',
+            buttons: [
+                {id: 'del', type: 'destructive', text: 'Удалить'},
+                {id: 'cancel', type: 'default', text: 'Назад'}
+            ]
+        }, (id) => {
+            if(id === 'del') {
+                delete state.schedule[state.selectedDate];
+                finishSelection();
+            }
+        });
+    }
+
+    function changeRole(newRole) {
+        state.role = newRole;
+        document.getElementById('ui-role').innerText = newRole;
+        tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function moveMonth(dir) {
+        state.viewDate.setMonth(state.viewDate.getMonth() + dir);
+        renderCalendar();
+    }
+
+    function closeSheet() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('sheet').classList.remove('open');
+    }
+
+    function openSettings() { document.getElementById('settings-page').style.display = 'block'; }
+    function closeSettings() { document.getElementById('settings-page').style.display = 'none'; }
+
+    init();
+</script>
+</body>
+</html>
