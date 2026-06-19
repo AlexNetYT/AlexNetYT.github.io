@@ -18,7 +18,21 @@
             --border-color: #505A64;
             --danger-color: #FF3B30;
         }
-
+        /* Иконка роли внутри дня */
+        .role-badge {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1px 3px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+            pointer-events: none;
+        }
+        .shift-day .role-badge { background: var(--primary-color); color: #fff; }
+        .shift-night .role-badge { background: var(--secondary-color); color: #000; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
@@ -184,6 +198,13 @@
 
 <script>
     const tg = window.Telegram.WebApp;
+    const ROLE_CONFIG = {
+    'Charger': { day: '09:00 - 21:00', night: '21:00 - 09:00', icon: 'C' },
+    'Ranger': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'R' },
+    'Charger by scooter': { day: '09:00 - 21:00', night: '21:00 - 09:00', icon: 'Sc' },
+    'Keeper': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'K' },
+    'Service Car': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'S' }
+};
     tg.expand();
 
     const ROLE_TIMES = {
@@ -247,12 +268,19 @@
             const dayEl = document.createElement('div');
             dayEl.className = 'day'; dayEl.innerText = d;
 
-            if (state.schedule[dateKey]) {
+           if (state.schedule[dateKey]) {
                 const shift = state.schedule[dateKey];
                 if(shift.type === 'day') dayEl.classList.add('shift-day');
                 else if(shift.type === 'night') dayEl.classList.add('shift-night');
                 else dayEl.classList.add('shift-custom');
                 
+                // Добавляем иконку роли
+                const badge = document.createElement('div');
+                badge.className = 'role-badge';
+                // Ищем иконку в конфиге по имени роли, сохраненной в этой смене
+                badge.innerText = ROLE_CONFIG[shift.role]?.icon || '?';
+                dayEl.appendChild(badge);
+            
                 const dot = document.createElement('div');
                 dot.className = `dot dot-${shift.type}`;
                 dayEl.appendChild(dot);
@@ -275,8 +303,10 @@
         
         if (shift) {
             let label = shift.type === 'day' ? '☀️ Дневная' : (shift.type === 'night' ? '🌙 Ночная' : '⚙️ Своя');
-            document.getElementById('sheet-info').innerText = `${label} (${shift.time})`;
+            // Добавляем инфо о роли в подзаголовок
+            document.getElementById('sheet-info').innerHTML = `${label} (${shift.time})<br><span style="color:var(--primary-color); font-size:12px;">Роль: ${shift.role}</span>`;
             document.getElementById('btn-cancel-shift').style.display = 'block';
+
         } else {
             document.getElementById('sheet-info').innerText = 'Смена не назначена';
             document.getElementById('btn-cancel-shift').style.display = 'none';
@@ -337,10 +367,49 @@
     }
 
     function changeRole(newRole) {
+        // Проверяем, есть ли уже заполненные дни
+        const filledDays = Object.keys(state.schedule);
+        
+        if (filledDays.length > 0) {
+            // Проверяем, есть ли дни, роль которых отличается от новой
+            const hasDifferentRole = filledDays.some(date => state.schedule[date].role !== newRole);
+    
+            if (hasDifferentRole) {
+                tg.showPopup({
+                    title: 'Смена роли',
+                    message: `В графике есть смены для роли "${state.role}". Новые смены будут проставлены для "${newRole}". Что сделать с текущим графиком?`,
+                    buttons: [
+                        {id: 'keep', type: 'default', text: 'Оставить как есть'},
+                        {id: 'reset', type: 'destructive', text: 'Сбросить график'},
+                        {id: 'cancel', type: 'default', text: 'Отмена'}
+                    ]
+                }, (id) => {
+                    if (id === 'reset') {
+                        state.schedule = {};
+                        updateRole(newRole);
+                    } else if (id === 'keep') {
+                        updateRole(newRole);
+                    } else {
+                        // Возвращаем селект в старое положение
+                        document.getElementById('set-role').value = state.role;
+                    }
+                });
+                return;
+            }
+        }
+        updateRole(newRole);
+    }
+    
+    // Вспомогательная функция для обновления стейта
+    function updateRole(newRole) {
         state.role = newRole;
         document.getElementById('ui-role').innerText = newRole;
+        document.getElementById('set-role').value = newRole;
+        renderCalendar();
         tg.HapticFeedback.notificationOccurred('success');
+        tg.MainButton.show(); // Показываем кнопку сохранения, так как роль изменилась
     }
+
 
     function moveMonth(dir) {
         state.viewDate.setMonth(state.viewDate.getMonth() + dir);
