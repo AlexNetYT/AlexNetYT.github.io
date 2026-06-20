@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Панель координатора</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg: #1e1e1e; --surface: #2a2a2a; --primary: #FF6E2D;
+            --text: #fff; --muted: #8a8a8a; --border: #404040; --success: #34C759; --danger: #FF3B30;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0 0 60px; }
+        .header { padding: 14px 16px; background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; }
+        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--primary); border-color: var(--primary); }
+        .panel { display: none; padding: 12px; }
+        .panel.active { display: block; }
+        .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+        select, input { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 10px; cursor: pointer; }
+        .card h4 { margin: 0 0 6px; }
+        .card .meta { color: var(--muted); font-size: 13px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; background: #333; }
+        .badge.ok { background: #1a3d2a; color: var(--success); }
+        .badge.wait { background: #3d2a1a; color: var(--primary); }
+        .detail { position: fixed; inset: 0; background: var(--bg); z-index: 100; overflow-y: auto; display: none; padding: 12px; }
+        .detail.open { display: block; }
+        .btn { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 10px 16px; cursor: pointer; margin: 4px 4px 4px 0; }
+        .btn.secondary { background: #444; }
+        .btn.danger { background: var(--danger); }
+        .back { margin-bottom: 12px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+        .error { color: var(--danger); padding: 12px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        td, th { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="header">Панель координатора</div>
+    <div class="tabs">
+        <div class="tab active" data-tab="employees">Сотрудники</div>
+        <div class="tab" data-tab="requests">Заявки</div>
+        <div class="tab" data-tab="dates">По датам</div>
+    </div>
+
+    <div id="panel-employees" class="panel active">
+        <div class="filters">
+            <select id="filter-district"><option value="">Все округа</option></select>
+            <select id="filter-role"><option value="">Все роли</option></select>
+        </div>
+        <div id="employees-list"></div>
+    </div>
+
+    <div id="panel-requests" class="panel">
+        <div id="requests-list"></div>
+    </div>
+
+    <div id="panel-dates" class="panel">
+        <div class="filters">
+            <input type="date" id="date-picker">
+            <select id="date-role"><option value="">Все роли</option></select>
+        </div>
+        <div id="date-list"></div>
+    </div>
+
+    <div id="detail" class="detail">
+        <button class="btn secondary back" onclick="closeDetail()">← Назад</button>
+        <div id="detail-content"></div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const API_BASE = window.location.origin;
+        const ROLES = ['Charger', 'Ranger', 'Keeper', 'Service Car', 'Charger by scooter'];
+        const DISTRICTS = ['ЦАО', 'СЗАО', 'САО', 'СВАО', 'ВАО', 'ЮВАО', 'ЛЮБЕРЦЫ', 'ЮАО', 'ЮЗАО', 'ЗАО'];
+
+        function authHeaders() {
+            return { 'Authorization': 'tma ' + tg.initData, 'Content-Type': 'application/json' };
+        }
+
+        async function api(path, opts = {}) {
+            const res = await fetch(API_BASE + path, { ...opts, headers: { ...authHeaders(), ...(opts.headers || {}) } });
+            if (!res.ok) throw new Error(await res.text());
+            return res.json();
+        }
+
+        function initFilters() {
+            const dSel = document.getElementById('filter-district');
+            DISTRICTS.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; dSel.appendChild(o); });
+            const rSel = document.getElementById('filter-role');
+            const drSel = document.getElementById('date-role');
+            ROLES.forEach(r => {
+                [rSel, drSel].forEach(sel => { const o = document.createElement('option'); o.value = r; o.textContent = r; sel.appendChild(o); });
+            });
+            document.getElementById('date-picker').value = new Date().toISOString().slice(0, 10);
+        }
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+                if (tab.dataset.tab === 'employees') loadEmployees();
+                if (tab.dataset.tab === 'requests') loadRequests();
+                if (tab.dataset.tab === 'dates') loadByDate();
+            });
+        });
+
+        document.getElementById('filter-district').addEventListener('change', loadEmployees);
+        document.getElementById('filter-role').addEventListener('change', loadEmployees);
+        document.getElementById('date-picker').addEventListener('change', loadByDate);
+        document.getElementById('date-role').addEventListener('change', loadByDate);
+
+        async function loadEmployees() {
+            const el = document.getElementById('employees-list');
+            try {
+                const district = document.getElementById('filter-district').value;
+                const role = document.getElementById('filter-role').value;
+                let url = '/api/employees?';
+                if (district) url += 'district=' + encodeURIComponent(district) + '&';
+                if (role) url += 'role=' + encodeURIComponent(role);
+                const data = await api(url);
+                el.innerHTML = data.map(e => `
+                    <div class="card" onclick="openDetail(${e.id})">
+                        <h4>${e.full_name || '—'}</h4>
+                        <div class="meta">${e.district} · ${e.role}</div>
+                        <div class="meta">
+                            <span class="badge ${e.is_approved ? 'ok' : 'wait'}">${e.is_approved ? 'Одобрен' : 'Ожидает'}</span>
+                            Тек: ${e.current_stats.work}р/${e.current_stats.weekend}в ·
+                            След: ${e.next_stats.work}р/${e.next_stats.weekend}в
+                        </div>
+                    </div>
+                `).join('') || '<p>Нет сотрудников</p>';
+            } catch (err) {
+                el.innerHTML = '<div class="error">' + err.message + '</div>';
+            }
+        }
+
+        async function openDetail(id) {
+            const el = document.getElementById('detail-content');
+            try {
+                const data = await api('/api/employees/' + id);
+                const u = data.user;
+                el.innerHTML = `
+                    <h2>${u.full_name}</h2>
+                    <p>${u.district} · ${u.role} · ${u.phone_number || ''}</p>
+                    <p>Штрафов: ${data.penalties.length} · Оценок: ${data.ratings.length}</p>
+                    <div class="row">
+                        ${!u.is_approved ? `<button class="btn" onclick="approveUser(${u.id})">Одобрить</button>` : ''}
+                        <button class="btn secondary" onclick="penaltyPrompt(${u.id})">Штраф</button>
+                        <button class="btn secondary" onclick="forceOffPrompt(${u.id})">Выходной</button>
+                        <button class="btn secondary" onclick="ratePrompt(${u.id})">Оценить</button>
+                    </div>
+                    <h3>Штрафы</h3>
+                    ${data.penalties.map(p => `<div class="card"><b>${p.amount} руб.</b> — ${p.reason}<br><span class="meta">${p.issued_at}</span></div>`).join('') || '<p>Нет</p>'}
+                    <h3>Рейтинг</h3>
+                    ${data.ratings.map(r => `<div class="card"><b>${r.score}/5</b> (${r.period})<br>${r.comment || ''}<br><span class="meta">${r.rated_at}</span></div>`).join('') || '<p>Нет</p>'}
+                `;
+                document.getElementById('detail').classList.add('open');
+            } catch (err) {
+                el.innerHTML = '<div class="error">' + err.message + '</div>';
+                document.getElementById('detail').classList.add('open');
+            }
+        }
+
+        function closeDetail() { document.getElementById('detail').classList.remove('open'); }
+
+        async function approveUser(id) {
+            await api('/api/approve', { method: 'POST', body: JSON.stringify({ user_id: id }) });
+            tg.showAlert('Одобрено'); closeDetail(); loadEmployees();
+        }
+
+        async function penaltyPrompt(id) {
+            const amount = prompt('Сумма штрафа:');
+            if (!amount) return;
+            const reason = prompt('Причина:');
+            if (!reason) return;
+            await api('/api/penalty', { method: 'POST', body: JSON.stringify({ user_id: id, amount: parseFloat(amount), reason }) });
+            tg.showAlert('Штраф выписан'); openDetail(id);
+        }
+
+        async function forceOffPrompt(id) {
+            const date = prompt('Дата (ГГГГ-ММ-ДД):');
+            if (!date) return;
+            await api('/api/force-off', { method: 'POST', body: JSON.stringify({ user_id: id, date }) });
+            tg.showAlert('Выходной назначен'); openDetail(id);
+        }
+
+        async function ratePrompt(id) {
+            const score = prompt('Оценка 0-5:');
+            if (score === null) return;
+            const comment = prompt('Комментарий:') || '';
+            await api('/api/rate', { method: 'POST', body: JSON.stringify({ user_id: id, score: parseInt(score), comment }) });
+            tg.showAlert('Оценка сохранена'); openDetail(id);
+        }
+
+        async function loadRequests() {
+            const el = document.getElementById('requests-list');
+            try {
+                const data = await api('/api/requests');
+                el.innerHTML = data.map(r => `
+                    <div class="card">
+                        <h4>#${r.id} ${r.user_name}</h4>
+                        <div class="meta">${r.date} → ${r.requested_type}</div>
+                        <p>${r.reason || ''}</p>
+                        <div class="row">
+                            <button class="btn" onclick="reviewReq(${r.id}, 'approved')">Одобрить</button>
+                            <button class="btn danger" onclick="reviewReq(${r.id}, 'rejected')">Отклонить</button>
+                        </div>
+                    </div>
+                `).join('') || '<p>Нет заявок</p>';
+            } catch (err) {
+                el.innerHTML = '<div class="error">' + err.message + '</div>';
+            }
+        }
+
+        async function reviewReq(id, status) {
+            await api('/api/review-request', { method: 'POST', body: JSON.stringify({ request_id: id, status }) });
+            tg.showAlert(status === 'approved' ? 'Одобрено' : 'Отклонено');
+            loadRequests();
+        }
+
+        async function loadByDate() {
+            const el = document.getElementById('date-list');
+            const date = document.getElementById('date-picker').value;
+            const role = document.getElementById('date-role').value;
+            try {
+                let url = '/api/schedule/' + date + '?';
+                if (role) url += 'role=' + encodeURIComponent(role);
+                const data = await api(url);
+                el.innerHTML = '<table><tr><th>Сотрудник</th><th>Округ</th><th>Смена</th></tr>' +
+                    data.map(r => `<tr><td>${r.full_name}</td><td>${r.district}</td><td>${r.shift_type} ${r.shift_time || ''}</td></tr>`).join('') +
+                    '</table>';
+                if (!data.length) el.innerHTML = '<p>Нет смен на эту дату</p>';
+            } catch (err) {
+                el.innerHTML = '<div class="error">' + err.message + '</div>';
+            }
+        }
+
+        initFilters();
+        loadEmployees();
+    </script>
+</body>
+</html>
