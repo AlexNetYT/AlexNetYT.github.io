@@ -8,187 +8,338 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         :root {
-            --bg-color: #282828;
-            --surface-color: #323232;
+            --bg-color: #1e1e1e;
+            --surface-color: #2a2a2a;
+            --surface-2: #333333;
             --primary-color: #FF6E2D;
             --secondary-color: #FEBF30;
-            --custom-color: #7D8796; /* Цвет для кастомных смен */
+            --success-color: #34C759;
             --text-main: #FFFFFF;
-            --text-sec: #7D8796;
-            --border-color: #505A64;
+            --text-sec: #8a8a8a;
+            --border-color: #404040;
             --danger-color: #FF3B30;
+            --weekend-color: #4a4a4a;
         }
-        /* Статистика */
-        .stats-bar {
-            display: flex; justify-content: space-around;
-            background: #323232; margin: 10px 15px; padding: 10px;
-            border-radius: 12px; border: 1px solid var(--border-color);
-        }
-        .stat-item { text-align: center; }
-        .stat-value { display: block; font-size: 16px; font-weight: 800; color: var(--primary-color); }
-        .stat-label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; }
-        
-        /* Прошлые дни */
-        .day.past-day { opacity: 0.4; filter: grayscale(1); }
-        
-        /* Кнопки дополнительных действий */
-        .extra-actions {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px 15px;
-        }
-        .btn-small {
-            padding: 8px; font-size: 11px; background: #3d3d3d; border: 1px solid var(--border-color);
-            color: white; border-radius: 8px; cursor: pointer;
-        }
-        
-        /* Форма диапазона */
-        #range-fill-box {
-            display: none; background: #282828; padding: 15px; border-radius: 12px; margin-top: 10px;
-        }
-        /* Баннер-предупреждение внизу */
-        .save-warning {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: rgba(254, 191, 48, 0.1);
-            border-top: 1px solid var(--secondary-color);
-            color: var(--secondary-color);
-            padding: 10px;
-            font-size: 11px;
-            text-align: center;
-            z-index: 50;
-            backdrop-filter: blur(5px);
-        }
-        
-        /* Поле ввода причины отмены */
-        #cancel-reason-box {
-            display: none;
-            margin-top: 15px;
-            background: #282828;
-            padding: 10px;
-            border-radius: 12px;
-        }
-        
-        #cancel-reason-box textarea {
-            width: 100%;
-            background: #404040;
-            border: 1px solid var(--border-color);
-            color: white;
-            padding: 8px;
-            border-radius: 8px;
-            resize: none;
-            font-family: inherit;
-            box-sizing: border-box;
-        }
-        
-        /* Стиль для отмененной смены в календаре */
-        .day.shift-cancelled {
-            background: rgba(255, 59, 48, 0.1);
-            color: var(--danger-color);
-            text-decoration: line-through;
-        }
-        /* Иконка роли внутри дня */
-        .role-badge {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            font-size: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 1px 3px;
-            border-radius: 4px;
-            font-weight: bold;
-            color: white;
-            pointer-events: none;
-        }
-        .shift-day .role-badge { background: var(--primary-color); color: #fff; }
-        .shift-night .role-badge { background: var(--secondary-color); color: #000; }
+
+        * { box-sizing: border-box; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-main);
-            margin: 0; padding: 0; user-select: none; overflow: hidden;
+            margin: 0; padding: 0;
+            user-select: none;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            overflow-y: auto;
         }
 
-        /* Header */
+        #main-page {
+            width: 100%;
+            max-width: 480px;
+            padding-bottom: 70px;
+        }
+
+        /* ── Header ── */
         .header {
-            padding: 16px 20px;
+            padding: 14px 18px;
             background: var(--surface-color);
             display: flex; justify-content: space-between; align-items: center;
             border-bottom: 1px solid var(--border-color);
+            position: sticky; top: 0; z-index: 10;
         }
-        .user-info .name { font-weight: 700; font-size: 16px; display: block; }
+        .user-info .name { font-weight: 700; font-size: 15px; display: block; }
         .user-info .role { font-size: 12px; color: var(--primary-color); font-weight: 500; }
-        .settings-btn { font-size: 20px; color: var(--text-sec); padding: 5px; }
+        .settings-btn { font-size: 20px; color: var(--text-sec); padding: 5px; cursor: pointer; }
 
-        /* Calendar */
-        .calendar-wrapper { padding: 15px; }
-        .month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .month-name { font-size: 18px; font-weight: 700; }
-        .nav-btn { color: var(--primary-color); font-size: 20px; cursor: pointer; padding: 5px 15px; }
+        /* ── Stats ── */
+        .stats-bar {
+            display: flex; justify-content: space-around;
+            background: var(--surface-color); margin: 10px 14px; padding: 10px;
+            border-radius: 12px; border: 1px solid var(--border-color);
+        }
+        .stat-item { text-align: center; }
+        .stat-value { display: block; font-size: 16px; font-weight: 800; color: var(--primary-color); }
+        .stat-label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; letter-spacing: 0.5px; }
 
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-        .weekday { text-align: center; font-size: 11px; color: var(--text-sec); font-weight: 600; text-transform: uppercase; padding-bottom: 5px; }
+        /* ── Decade Card ── */
+        .decade-card {
+            margin: 0 14px 10px;
+            background: var(--surface-color);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+        .decade-card-title {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-sec);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 10px 14px 6px;
+        }
+        .decade-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 14px;
+            border-top: 1px solid var(--border-color);
+        }
+        .decade-row:first-of-type { border-top: none; }
+        .decade-info { display: flex; flex-direction: column; gap: 2px; }
+        .decade-name { font-size: 13px; font-weight: 600; }
+        .decade-dates { font-size: 11px; color: var(--text-sec); }
+        .decade-btn-group { display: flex; gap: 6px; }
+        .decade-btn {
+            padding: 6px 13px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 8px;
+            border: 1.5px solid var(--border-color);
+            background: var(--surface-2);
+            color: var(--text-sec);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .decade-btn.active-day {
+            background: rgba(255, 110, 45, 0.2);
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .decade-btn.active-night {
+            background: rgba(254, 191, 48, 0.2);
+            color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+        .decade-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .decade-locked-badge {
+            font-size: 10px;
+            color: var(--text-sec);
+            background: var(--surface-2);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-weight: 600;
+        }
+
+        /* ── Calendar ── */
+        .calendar-wrapper { padding: 0 14px 10px; }
+        .month-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 0 12px;
+        }
+        .month-name { font-size: 17px; font-weight: 700; }
+        .nav-btn { color: var(--primary-color); font-size: 20px; cursor: pointer; padding: 5px 12px; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .weekday {
+            text-align: center; font-size: 10px; color: var(--text-sec);
+            font-weight: 700; text-transform: uppercase; padding-bottom: 4px;
+            letter-spacing: 0.4px;
+        }
 
         .day {
-            aspect-ratio: 1/1; background: var(--surface-color); border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 15px; font-weight: 500; position: relative;
-            border: 2px solid transparent; transition: transform 0.1s;
+            aspect-ratio: 1/1; background: var(--surface-color); border-radius: 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 600; position: relative;
+            border: 2px solid transparent; transition: transform 0.1s, border-color 0.15s;
+            cursor: pointer;
         }
-        .day:active { transform: scale(0.95); }
+        .day:active { transform: scale(0.93); }
         .day.today { border-color: var(--text-sec); }
-        .day.selected { border-color: var(--primary-color); }
-        
-        .day.shift-day { background: rgba(255, 110, 45, 0.25); color: var(--primary-color); }
-        .day.shift-night { background: rgba(254, 191, 48, 0.25); color: var(--secondary-color); }
-        .day.shift-custom { background: rgba(125, 135, 150, 0.3); color: white; }
 
-        .dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 6px; }
-        .dot-day { background: var(--primary-color); }
-        .dot-night { background: var(--secondary-color); }
-        .dot-custom { background: white; }
+        .day.shift-work-day   { background: rgba(255, 110, 45, 0.22); color: var(--primary-color); }
+        .day.shift-work-night  { background: rgba(254, 191, 48, 0.22); color: var(--secondary-color); }
+        .day.shift-weekend {
+            background: var(--surface-2);
+            color: var(--text-sec);
+            border: 2px dashed var(--border-color);
+        }
+        /* pending approval – current decade editable days */
+        .day.pending-approval {
+            outline: 2px solid rgba(254, 191, 48, 0.5);
+            outline-offset: -2px;
+        }
+        .day.pending-approval::after {
+            content: '⏳';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 7px;
+            line-height: 1;
+        }
+        /* comment indicator */
+        .day.has-comment::before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: var(--secondary-color);
+        }
 
-        /* Bottom Sheet */
-        .sheet-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: none; z-index: 100; }
+        .day.past-day { opacity: 0.3; filter: grayscale(0.9); cursor: default; }
+        .day.past-day:active { transform: none; }
+
+        /* dot under number */
+        .day-dot {
+            width: 4px; height: 4px; border-radius: 50%;
+            position: absolute; bottom: 5px;
+        }
+        .dot-work-day   { background: var(--primary-color); }
+        .dot-work-night { background: var(--secondary-color); }
+
+        /* ── Bottom Sheet ── */
+        .sheet-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.65); display: none; z-index: 100;
+        }
         .bottom-sheet {
-            position: fixed; bottom: 0; left: 0; right: 0;
+            position: fixed; bottom: 0; left: 50%;
+            transform: translate(-50%, 100%);
+            width: 100%; max-width: 480px;
             background: var(--surface-color); border-radius: 24px 24px 0 0;
-            padding: 24px; transform: translateY(100%);
+            padding: 20px 20px 30px;
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 101;
         }
-        .bottom-sheet.open { transform: translateY(0); }
+        .bottom-sheet.open { transform: translate(-50%, 0); }
 
-        .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .sheet-subtitle { color: var(--text-sec); font-size: 14px; margin-bottom: 20px; }
+        .sheet-handle {
+            width: 36px; height: 4px; background: var(--border-color);
+            border-radius: 2px; margin: 0 auto 16px;
+        }
+        .sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 3px; }
+        .sheet-subtitle { color: var(--text-sec); font-size: 13px; margin-bottom: 18px; }
 
-        .btn-group { display: flex; flex-direction: column; gap: 10px; }
-        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 14px; border-radius: 14px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s; }
+        .shift-choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .shift-choice-btn {
+            padding: 18px 10px;
+            border-radius: 14px;
+            border: 2px solid var(--border-color);
+            background: var(--surface-2);
+            color: var(--text-main);
+            font-size: 13px; font-weight: 700;
+            cursor: pointer; text-align: center;
+            transition: all 0.15s;
+        }
+        .shift-choice-btn:active { transform: scale(0.96); }
+        .shift-choice-btn.active-work {
+            background: rgba(52, 199, 89, 0.15);
+            border-color: var(--success-color);
+            color: var(--success-color);
+        }
+        .shift-choice-btn.active-weekend {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--text-sec);
+            color: var(--text-sec);
+        }
+        .shift-choice-icon { font-size: 22px; display: block; margin-bottom: 6px; }
+
+        /* pending banner inside sheet */
+        .pending-banner {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: rgba(254, 191, 48, 0.1);
+            border: 1px solid rgba(254, 191, 48, 0.3);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12px;
+            color: var(--secondary-color);
+            margin-bottom: 14px;
+        }
+        .pending-banner.show { display: flex; }
+
+        /* comment field */
+        .comment-section {
+            margin-top: 14px;
+        }
+        .comment-label {
+            font-size: 11px;
+            color: var(--text-sec);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .comment-input {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .comment-input:focus {
+            border-color: var(--primary-color);
+        }
+        .comment-input::placeholder { color: var(--text-sec); }
+        .comment-apply-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 13px;
+            border-radius: 12px;
+            border: none;
+            background: var(--primary-color);
+            color: white;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .comment-apply-btn:active { opacity: 0.75; }
+
+        /* ── Settings Page ── */
+        #settings-page {
+            position: fixed; top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 100%; max-width: 480px; height: 100%;
+            background: var(--bg-color); z-index: 200; display: none; padding: 20px;
+            overflow-y: auto;
+        }
+        .setting-card { background: var(--surface-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+        .setting-label { color: var(--text-sec); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; display: block; margin-bottom: 8px; }
+        select {
+            width: 100%; background: var(--surface-2); border: 1px solid var(--border-color);
+            color: white; padding: 12px; border-radius: 10px; font-size: 15px;
+        }
+        .btn { padding: 14px; border-radius: 14px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: opacity 0.2s; width: 100%; }
         .btn:active { opacity: 0.7; }
         .btn-primary { background: var(--primary-color); color: white; }
-        .btn-secondary { background: var(--secondary-color); color: #282828; }
-        .btn-outline { background: #404040; color: white; border: 1px solid var(--border-color); }
-        .btn-danger { background: rgba(255, 59, 48, 0.15); color: var(--danger-color); width: 100%; margin-top: 10px; }
 
-        /* Custom Time Inputs */
-        #custom-time-box {
-            display: none; background: #282828; padding: 15px; border-radius: 12px; margin-top: 10px;
-            grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;
+        /* ── Save warning ── */
+        .save-warning {
+            position: fixed;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 100%; max-width: 480px;
+            background: rgba(254, 191, 48, 0.08);
+            border-top: 1px solid rgba(254, 191, 48, 0.3);
+            color: var(--secondary-color);
+            padding: 10px 14px;
+            font-size: 11px;
+            text-align: center;
+            z-index: 50;
+            backdrop-filter: blur(8px);
         }
-        .time-input-group { display: flex; flex-direction: column; gap: 5px; }
-        .time-input-group label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; }
-        input[type="time"] {
-            background: #404040; border: 1px solid var(--border-color); color: white;
-            padding: 8px; border-radius: 8px; font-size: 16px; width: 100%; box-sizing: border-box;
-        }
-
-        /* Settings View */
-        #settings-page { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg-color); z-index: 200; display: none; padding: 20px; }
-        .setting-card { background: var(--surface-color); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
-        select { width: 100%; background: #404040; border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div id="main-page">
+    <!-- Header -->
     <div class="header">
         <div class="user-info">
             <span class="name" id="ui-name">Загрузка...</span>
@@ -196,16 +347,50 @@
         </div>
         <div class="settings-btn" onclick="openSettings()"><i class="fas fa-cog"></i></div>
     </div>
-    
+
+    <!-- Stats -->
     <div class="stats-bar">
-        <div class="stat-item"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Смен</span></div>
-        <div class="stat-item"><span class="stat-value" id="stat-day">0</span><span class="stat-label">День</span></div>
-        <div class="stat-item"><span class="stat-value" id="stat-night">0</span><span class="stat-label">Ночь</span></div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-total">0</span>
+            <span class="stat-label">Рабочих</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-day">0</span>
+            <span class="stat-label">День</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-value" id="stat-night">0</span>
+            <span class="stat-label">Ночь</span>
+        </div>
     </div>
-    <div class="extra-actions">
-        <button class="btn-small" onclick="copyLastWeek()"><i class="fas fa-copy"></i> Повторить прошлую неделю</button>
-        <button class="btn-small" onclick="toggleRangeBox()"><i class="fas fa-calendar-plus"></i> Заполнить период</button>
+
+    <!-- Decade Selector -->
+    <div class="decade-card">
+        <div class="decade-card-title"><i class="fas fa-sliders-h"></i>&nbsp; Тип смен по декадам</div>
+
+        <!-- Current decade (locked) -->
+        <div class="decade-row">
+            <div class="decade-info">
+                <span class="decade-name">Текущая декада</span>
+                <span class="decade-dates" id="cur-decade-dates">—</span>
+            </div>
+            <span class="decade-locked-badge" id="cur-decade-type">🔒 Заблокировано</span>
+        </div>
+
+        <!-- Next decade (editable) -->
+        <div class="decade-row">
+            <div class="decade-info">
+                <span class="decade-name">Следующая декада</span>
+                <span class="decade-dates" id="next-decade-dates">—</span>
+            </div>
+            <div class="decade-btn-group">
+                <button class="decade-btn" id="next-dec-day" onclick="setNextDecadeType('day')">☀️ День</button>
+                <button class="decade-btn" id="next-dec-night" onclick="setNextDecadeType('night')">🌙 Ночь</button>
+            </div>
+        </div>
     </div>
+
+    <!-- Calendar -->
     <div class="calendar-wrapper">
         <div class="month-nav">
             <div class="nav-btn" onclick="moveMonth(-1)"><i class="fas fa-chevron-left"></i></div>
@@ -216,14 +401,14 @@
     </div>
 </div>
 
-<!-- Страница настроек -->
+<!-- Settings Page -->
 <div id="settings-page">
     <div style="display: flex; align-items: center; margin-bottom: 24px;">
-        <i class="fas fa-arrow-left" onclick="closeSettings()" style="font-size: 20px; margin-right: 15px;"></i>
+        <i class="fas fa-arrow-left" onclick="closeSettings()" style="font-size: 20px; margin-right: 15px; cursor:pointer;"></i>
         <h2 style="margin:0">Настройки</h2>
     </div>
     <div class="setting-card">
-        <label style="color: var(--text-sec); font-size: 12px;">Округ</label>
+        <span class="setting-label">Округ</span>
         <select id="set-district">
             <option>ЦАО</option><option>СЗАО</option><option>САО</option><option>СВАО</option>
             <option>ВАО</option><option>ЮВАО</option><option>ЛЮБЕРЦЫ</option><option>ЮАО</option>
@@ -231,7 +416,7 @@
         </select>
     </div>
     <div class="setting-card">
-        <label style="color: var(--text-sec); font-size: 12px;">Роль</label>
+        <span class="setting-label">Роль</span>
         <select id="set-role" onchange="changeRole(this.value)">
             <option value="Charger">Charger</option>
             <option value="Ranger">Ranger</option>
@@ -240,437 +425,596 @@
             <option value="Charger by scooter">Charger by scooter</option>
         </select>
     </div>
-    <button class="btn btn-primary" style="width: 100%" onclick="closeSettings()">СОХРАНИТЬ</button>
+    <button class="btn btn-primary" onclick="closeSettings()">СОХРАНИТЬ</button>
 </div>
 
+<!-- Bottom Sheet Overlay -->
 <div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>
 
+<!-- Bottom Sheet -->
 <div class="bottom-sheet" id="sheet">
+    <div class="sheet-handle"></div>
     <div class="sheet-title" id="sheet-date">Дата</div>
-    <div class="sheet-subtitle" id="sheet-info">Выберите тип смены</div>
-    
-    <div class="btn-group">
-        <div class="btn-row">
-            <button class="btn btn-primary" onclick="applyShift('day')">ДЕНЬ</button>
-            <button class="btn btn-secondary" onclick="applyShift('night')">НОЧЬ</button>
-        </div>
-        <button class="btn btn-outline" onclick="toggleCustomTime()">СВОЁ ВРЕМЯ</button>
-        
-        <div id="custom-time-box">
-            <div class="time-input-group">
-                <label>Начало</label>
-                <input type="time" id="t-start" value="12:00">
-            </div>
-            <div class="time-input-group">
-                <label>Конец</label>
-                <input type="time" id="t-end" value="22:00">
-            </div>
-            <button class="btn btn-primary" style="grid-column: span 2; margin-top: 5px;" onclick="applyCustomShift()">ПОДТВЕРДИТЬ</button>
-        </div>
+    <div class="sheet-subtitle" id="sheet-info">Выберите статус дня</div>
 
-        <button class="btn btn-danger" id="btn-cancel-shift" style="display: none;" onclick="cancelShiftPrompt()">УДАЛИТЬ СМЕНУ</button>
+    <!-- Pending approval banner (shown for current decade days) -->
+    <div class="pending-banner" id="pending-banner">
+        <span>⏳</span>
+        <span>Изменения текущей декады отправятся на согласование координатору</span>
     </div>
-    <div id="cancel-reason-box">
-        <label style="font-size: 11px; color: var(--text-sec);">ПРИЧИНА ОТМЕНЫ:</label>
-        <textarea id="cancel-text" rows="2" placeholder="Напишите причину (приболел, сессия и т.д.)"></textarea>
-        <button class="btn btn-danger" style="margin-top: 10px;" onclick="confirmCancelShift()">ПОДТВЕРДИТЬ ОТМЕНУ</button>
+
+    <div class="shift-choice-row">
+        <button class="shift-choice-btn" id="btn-work" onclick="selectStatus('work')">
+            <span class="shift-choice-icon" id="work-icon">💼</span>
+            РАБОЧИЙ
+        </button>
+        <button class="shift-choice-btn" id="btn-weekend" onclick="selectStatus('weekend')">
+            <span class="shift-choice-icon">🏖️</span>
+            ВЫХОДНОЙ
+        </button>
     </div>
-    <div id="range-fill-box">
-        <div style="font-size: 12px; margin-bottom: 10px;">Заполнить период такой же сменой:</div>
-        <div class="btn-row">
-            <div class="time-input-group">
-                <label>С</label>
-                <input type="date" id="range-start" style="background:#404040; border:1px solid #555; color:white; border-radius:8px; padding:5px;">
-            </div>
-            <div class="time-input-group">
-                <label>По</label>
-                <input type="date" id="range-end" style="background:#404040; border:1px solid #555; color:white; border-radius:8px; padding:5px;">
-            </div>
-        </div>
-        <div class="btn-row" style="margin-top:10px;">
-            <button class="btn btn-primary" style="padding:8px" onclick="applyRange('day')">ДЕНЬ</button>
-            <button class="btn btn-secondary" style="padding:8px" onclick="applyRange('night')">НОЧЬ</button>
-        </div>
+
+    <!-- Comment field -->
+    <div class="comment-section">
+        <span class="comment-label">💬 Комментарий (необязательно)</span>
+        <textarea class="comment-input" id="shift-comment" rows="2"
+            placeholder="Например: смена с 11:00, уточнение по графику..."></textarea>
+        <button class="comment-apply-btn" onclick="applyCurrentSelection()">ПРИМЕНИТЬ</button>
     </div>
+</div>
+
+<div class="save-warning">
+    ⚠️ Нажмите <b>«СОХРАНИТЬ ГРАФИК»</b> внизу Telegram, чтобы зафиксировать изменения.
 </div>
 
 <script>
-    function saveToLocal() {
-    localStorage.setItem('cached_schedule', JSON.stringify(state.schedule));
-    localStorage.setItem('cached_role', state.role);
-    tg.MainButton.show(); // Показываем кнопку сохранения при любом изменении
-}
+const tg = window.Telegram.WebApp;
+tg.expand();
 
-// Загрузка из памяти (вызывать в конце init)
-function loadFromLocal() {
-    const cached = localStorage.getItem('cached_schedule');
-    if (cached) {
-        // Можно добавить логику: если данные в URL пустые, а в кеше есть - берем из кеша
-        const localData = JSON.parse(cached);
-        // Объединяем данные (приоритет кешу, если пользователь еще не нажал сохранить)
-        state.schedule = {...state.schedule, ...localData};
-    }
-}
-    const tg = window.Telegram.WebApp;
-    const ROLE_CONFIG = {
-    'Charger': { day: '09:00 - 21:00', night: '21:00 - 09:00', icon: 'C' },
-    'Ranger': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'R' },
-    'Charger by scooter': { day: '09:00 - 21:00', night: '21:00 - 09:00', icon: 'Sc' },
-    'Keeper': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'K' },
-    'Service Car': { day: '08:00 - 20:00', night: '20:00 - 08:00', icon: 'S' }
+// ── Config ──────────────────────────────────────────────
+const ROLE_TIMES = {
+    'Charger':            { day: '09:00 - 21:00', night: '21:00 - 09:00' },
+    'Ranger':             { day: '08:00 - 20:00', night: '20:00 - 08:00' },
+    'Charger by scooter': { day: '09:00 - 21:00', night: '21:00 - 09:00' },
+    'Keeper':             { day: '08:00 - 20:00', night: '20:00 - 08:00' },
+    'Service Car':        { day: '08:00 - 20:00', night: '20:00 - 08:00' }
 };
-    tg.expand();
 
-    const ROLE_TIMES = {
-        'Charger': { day: '09:00 - 21:00', night: '21:00 - 09:00' },
-        'Ranger': { day: '08:00 - 20:00', night: '20:00 - 08:00' },
-        'Charger by scooter': { day: '09:00 - 21:00', night: '21:00 - 09:00' },
-        'Keeper': { day: '08:00 - 20:00', night: '20:00 - 08:00' },
-        'Service Car': { day: '08:00 - 20:00', night: '20:00 - 08:00' }
-    };
+// ── State ────────────────────────────────────────────────
+let state = {
+    name: 'Сотрудник',
+    role: 'Ranger',
+    schedule: {},    // { 'YYYY-MM-DD': { type: 'work'|'weekend', shiftType: 'day'|'night', time, role } }
+    viewDate: new Date(),
+    selectedDate: null,
+    decadeTypes: {},  // { 'YYYY-MM-d1': 'day'|'night' }  key = first day of decade YYYY-MM-DD
+};
 
-    let state = {
-        name: "Сотрудник", role: "Ranger", schedule: {}, 
-        viewDate: new Date(), selectedDate: null
-    };
+// ── Decade helpers ───────────────────────────────────────
 
-    function init() {
-        loadFromLocal(); // Загружаем то, что пользователь натыкал ранее и не сохранил
-    
-        // Если в кеше была другая роль, подставляем её
-        const cachedRole = localStorage.getItem('cached_role');
-        if (cachedRole) state.role = cachedRole;
-    
-        renderCalendar();
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('days')) state.schedule = JSON.parse(params.get('days'));
-        if (params.has('name')) state.name = params.get('name');
-        if (params.has('role')) state.role = params.get('role');
-
-        document.getElementById('ui-name').innerText = state.name;
-        document.getElementById('ui-role').innerText = state.role;
-        document.getElementById('set-role').value = state.role;
-
-        renderCalendar();
-        
-        tg.MainButton.setParams({ text: 'СОХРАНИТЬ В БОТЕ', color: '#FF6E2D' });
-        tg.MainButton.onClick(() => {
-            const result = {
-                days: JSON.stringify(state.schedule),
-                role: state.role,
-                district: document.getElementById('set-district').value,
-                edited_at: new Date().toLocaleString()
-            };
-            tg.sendData(JSON.stringify(result));
-            localStorage.removeItem('cached_schedule'); // Очищаем кеш, так как данные ушли в БД
-        });
-    }
-    function updateStats() {
-        const year = state.viewDate.getFullYear();
-        const month = String(state.viewDate.getMonth() + 1).padStart(2, '0');
-        const prefix = `${year}-${month}`;
-        
-        let total = 0, day = 0, night = 0;
-        
-        for (let date in state.schedule) {
-            if (date.startsWith(prefix) && state.schedule[date].type !== 'cancelled') {
-                total++;
-                if (state.schedule[date].type === 'day') day++;
-                if (state.schedule[date].type === 'night') night++;
-            }
-        }
-        
-        document.getElementById('stat-total').innerText = total;
-        document.getElementById('stat-day').innerText = day;
-        document.getElementById('stat-night').innerText = night;
-    }
-
-    function renderCalendar() {
-        const grid = document.getElementById('calendar-grid');
-        grid.innerHTML = '';
-        const year = state.viewDate.getFullYear();
-        const month = state.viewDate.getMonth();
-        
-        const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-        document.getElementById('month-display').innerText = `${monthNames[month]} ${year}`;
-
-        ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(d => {
-            const el = document.createElement('div'); el.className = 'weekday'; el.innerText = d; grid.appendChild(el);
-        });
-
-        const firstDay = new Date(year, month, 1).getDay();
-        const offset = firstDay === 0 ? 6 : firstDay - 1;
-        const totalDays = new Date(year, month + 1, 0).getDate();
-
-        for(let i=0; i<offset; i++) grid.appendChild(document.createElement('div'));
-
-        for(let d=1; d<=totalDays; d++) {
-            const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-            const dayEl = document.createElement('div');
-            dayEl.className = 'day'; dayEl.innerText = d;
-
-           if (state.schedule[dateKey]) {
-                const shift = state.schedule[dateKey];
-                if(shift.type === 'day') dayEl.classList.add('shift-day');
-                else if(shift.type === 'night') dayEl.classList.add('shift-night');
-                else dayEl.classList.add('shift-custom');
-                
-                // Добавляем иконку роли
-                const badge = document.createElement('div');
-                badge.className = 'role-badge';
-                // Ищем иконку в конфиге по имени роли, сохраненной в этой смене
-                badge.innerText = ROLE_CONFIG[shift.role]?.icon || '?';
-                dayEl.appendChild(badge);
-            
-                const dot = document.createElement('div');
-                dot.className = `dot dot-${shift.type}`;
-                dayEl.appendChild(dot);
-            }
-
-            if(new Date().toDateString() === new Date(year, month, d).toDateString()) dayEl.classList.add('today');
-
-            dayEl.onclick = () => openDay(dateKey);
-            grid.appendChild(dayEl);
-            const today = new Date();
-            today.setHours(0,0,0,0);
-            const cellDate = new Date(year, month, d);
-            
-            if (cellDate < today) {
-                dayEl.classList.add('past-day');
-                dayEl.onclick = () => tg.showAlert("Редактирование прошлых смен запрещено");
-            } else {
-                dayEl.onclick = () => openDay(dateKey);
-            }
-        }
-    updateStats();
-    }
-    function copyLastWeek() {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        
-        // Копируем смены за последние 7 дней (до сегодня)
-        // И применяем их на следующие 7 дней (от сегодня)
-        for (let i = 1; i <= 7; i++) {
-            const pastDate = new Date();
-            pastDate.setDate(today.getDate() - (8 - i));
-            const pastKey = pastDate.toISOString().split('T')[0];
-            
-            const futureDate = new Date();
-            futureDate.setDate(today.getDate() + (i - 1));
-            const futureKey = futureDate.toISOString().split('T')[0];
-            
-            if (state.schedule[pastKey]) {
-                // Копируем тип смены, но используем ТЕКУЩУЮ роль
-                const shiftType = state.schedule[pastKey].type;
-                const times = ROLE_TIMES[state.role];
-                
-                state.schedule[futureKey] = {
-                    type: shiftType,
-                    time: shiftType === 'day' ? times.day : (shiftType === 'night' ? times.night : state.schedule[pastKey].time),
-                    role: state.role
-                };
-            }
-        }
-        renderCalendar();
-        saveToLocal();
-        tg.showAlert("Смены скопированы на неделю вперед!");
-    }
-    function toggleRangeBox() {
-        const box = document.getElementById('range-fill-box');
-        box.style.display = box.style.display === 'block' ? 'none' : 'block';
-        // Прокрутим страницу вниз, чтобы увидеть форму
-        box.scrollIntoView({ behavior: 'smooth' });
-    }
-    
-    function applyRange(type) {
-        const startStr = document.getElementById('range-start').value;
-        const endStr = document.getElementById('range-end').value;
-        
-        if (!startStr || !endStr) {
-            tg.showAlert("Выберите начало и конец периода");
-            return;
-        }
-    
-        const start = new Date(startStr);
-        const end = new Date(endStr);
-        const today = new Date();
-        today.setHours(0,0,0,0);
-    
-        if (start > end) {
-            tg.showAlert("Дата начала не может быть больше даты конца");
-            return;
-        }
-    
-        const times = ROLE_TIMES[state.role];
-        let current = new Date(start);
-        
-        while (current <= end) {
-            if (current >= today) { // Только для будущих дат
-                const key = current.toISOString().split('T')[0];
-                state.schedule[key] = {
-                    type: type,
-                    time: type === 'day' ? times.day : times.night,
-                    role: state.role
-                };
-            }
-            current.setDate(current.getDate() + 1);
-        }
-        
-        toggleRangeBox();
-        renderCalendar();
-        saveToLocal();
-        tg.showAlert("Период заполнен!");
-    }
-
-    function openDay(date) {
-        state.selectedDate = date;
-        tg.HapticFeedback.impactOccurred('light');
-        document.getElementById('custom-time-box').style.display = 'none';
-        
-        const shift = state.schedule[date];
-        document.getElementById('sheet-date').innerText = new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
-        
-        if (shift) {
-            let label = shift.type === 'day' ? '☀️ Дневная' : (shift.type === 'night' ? '🌙 Ночная' : '⚙️ Своя');
-            // Добавляем инфо о роли в подзаголовок
-            document.getElementById('sheet-info').innerHTML = `${label} (${shift.time})<br><span style="color:var(--primary-color); font-size:12px;">Роль: ${shift.role}</span>`;
-            document.getElementById('btn-cancel-shift').style.display = 'block';
-
-        } else {
-            document.getElementById('sheet-info').innerText = 'Смена не назначена';
-            document.getElementById('btn-cancel-shift').style.display = 'none';
-        }
-
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById('sheet').classList.add('open');
-    }
-
-    function applyShift(type) {
-        const times = ROLE_TIMES[state.role];
-        state.schedule[state.selectedDate] = {
-            type: type,
-            time: type === 'day' ? times.day : times.night,
-            role: state.role
-        };
-        finishSelection();
-    }
-
-    function toggleCustomTime() {
-        const box = document.getElementById('custom-time-box');
-        box.style.display = box.style.display === 'grid' ? 'none' : 'grid';
-    }
-
-    function applyCustomShift() {
-        const start = document.getElementById('t-start').value;
-        const end = document.getElementById('t-end').value;
-        if(!start || !end) return;
-
-        state.schedule[state.selectedDate] = {
-            type: 'custom',
-            time: `${start} - ${end}`,
-            role: state.role
-        };
-        finishSelection();
-    }
-
-    function confirmCancelShift() {
-    const reason = document.getElementById('cancel-text').value.trim();
-    if (reason.length < 3) {
-        tg.showAlert("Пожалуйста, напишите причину отмены");
-        return;
-    }
-
-    // Сохраняем как "отмененную" смену
-    state.schedule[state.selectedDate] = {
-        type: 'cancelled',
-        reason: reason,
-        role: state.role,
-        time: "ОТМЕНЕНА"
-    };
-
-    document.getElementById('cancel-text').value = ''; // Чистим поле
-    document.getElementById('cancel-reason-box').style.display = 'none';
-    finishSelection();
-    saveToLocal(); // Сразу в кеш
+/**
+ * Returns the 'decade' an arbitrary Date belongs to.
+ * A decade is half a month: 1-15 or 16-end.
+ * Returns { start: Date, end: Date, key: 'YYYY-MM-DD' (start) }
+ */
+function getDecadeOf(date) {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const d = date.getDate();
+    const isFirst = d <= 15;
+    const startD = isFirst ? 1 : 16;
+    const endD   = isFirst ? 15 : new Date(y, m + 1, 0).getDate();
+    const start  = new Date(y, m, startD);
+    const end    = new Date(y, m, endD);
+    return { start, end, key: toKey(start) };
 }
 
-// В функции finishSelection добавьте очистку UI шторки
-function finishSelection() {
+/**
+ * Returns the 'next' decade after a given decade.
+ */
+function getNextDecadeOf(date) {
+    const cur = getDecadeOf(date);
+    // The next decade starts the day after cur.end
+    const nextStart = new Date(cur.end);
+    nextStart.setDate(nextStart.getDate() + 1);
+    return getDecadeOf(nextStart);
+}
+
+function toKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+
+function formatDecadeDates(decade) {
+    const opts = { day: 'numeric', month: 'short' };
+    return `${decade.start.toLocaleDateString('ru-RU', opts)} — ${decade.end.toLocaleDateString('ru-RU', opts)}`;
+}
+
+function isInDecade(dateKey, decade) {
+    const d = new Date(dateKey);
+    return d >= decade.start && d <= decade.end;
+}
+
+// ── Decade type management ───────────────────────────────
+
+function getDecadeType(decade) {
+    return state.decadeTypes[decade.key] || null;
+}
+
+function setNextDecadeType(type) {
+    const today = new Date();
+    const nextDec = getNextDecadeOf(today);
+    state.decadeTypes[nextDec.key] = type;
+
+    // Re-apply type to all working days in the next decade
+    const times = ROLE_TIMES[state.role];
+    for (const dateKey in state.schedule) {
+        if (isInDecade(dateKey, nextDec)) {
+            const s = state.schedule[dateKey];
+            if (s.type === 'work') {
+                state.schedule[dateKey] = {
+                    ...s,
+                    shiftType: type,
+                    time: times[type]
+                };
+            }
+        }
+    }
+
+    updateDecadeUI();
+    renderCalendar();
+    saveToLocal();
+}
+
+function updateDecadeUI() {
+    const today = new Date();
+    const curDec  = getDecadeOf(today);
+    const nextDec = getNextDecadeOf(today);
+
+    // Current decade label
+    document.getElementById('cur-decade-dates').innerText = formatDecadeDates(curDec);
+    const curType = getDecadeType(curDec);
+    const curBadge = document.getElementById('cur-decade-type');
+    if (curType === 'day') {
+        curBadge.textContent = '☀️ День';
+        curBadge.style.color = 'var(--primary-color)';
+    } else if (curType === 'night') {
+        curBadge.textContent = '🌙 Ночь';
+        curBadge.style.color = 'var(--secondary-color)';
+    } else {
+        curBadge.textContent = '🔒 Заблокировано';
+        curBadge.style.color = '';
+    }
+
+    // Next decade
+    document.getElementById('next-decade-dates').innerText = formatDecadeDates(nextDec);
+    const nextType = getDecadeType(nextDec);
+    const dayBtn   = document.getElementById('next-dec-day');
+    const nightBtn = document.getElementById('next-dec-night');
+    dayBtn.className   = 'decade-btn' + (nextType === 'day'   ? ' active-day'   : '');
+    nightBtn.className = 'decade-btn' + (nextType === 'night' ? ' active-night' : '');
+}
+
+// ── Detect decade type from existing schedule ────────────
+function inferDecadeTypesFromSchedule() {
+    for (const dateKey in state.schedule) {
+        const s = state.schedule[dateKey];
+        if (s.type === 'work' && s.shiftType) {
+            const dec = getDecadeOf(new Date(dateKey));
+            if (!state.decadeTypes[dec.key]) {
+                state.decadeTypes[dec.key] = s.shiftType;
+            }
+        }
+    }
+}
+
+// ── Ensure all days in next decade are filled ────────────
+function initializeNextDecade() {
+    const today   = new Date();
+    const nextDec = getNextDecadeOf(today);
+    const nextType = getDecadeType(nextDec);
+    if (!nextType) return; // no type chosen yet
+
+    const times = ROLE_TIMES[state.role];
+    const cur = new Date(nextDec.start);
+    while (cur <= nextDec.end) {
+        const key = toKey(cur);
+        if (!state.schedule[key]) {
+            // Default: weekend
+            state.schedule[key] = { type: 'weekend', shiftType: nextType, time: '', role: state.role };
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+}
+
+// ── Is date in CURRENT (not next) decade and not past? ──
+function isCurrentDecadeDate(dateKey) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(dateKey);
+    if (d < today) return false;
+    const curDec  = getDecadeOf(today);
+    const nextDec = getNextDecadeOf(today);
+    return isInDecade(dateKey, curDec) && !isInDecade(dateKey, nextDec);
+}
+
+// ── Only past days are truly locked (not editable at all) ──
+function isPastDay(dateKey) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(dateKey) < today;
+}
+
+// ── LocalStorage ─────────────────────────────────────────
+function saveToLocal() {
+    localStorage.setItem('cached_schedule',     JSON.stringify(state.schedule));
+    localStorage.setItem('cached_role',         state.role);
+    localStorage.setItem('cached_decadeTypes',  JSON.stringify(state.decadeTypes));
+    tg.MainButton.show();
+}
+
+// ── Render Calendar ──────────────────────────────────────
+function renderCalendar() {
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+    const year  = state.viewDate.getFullYear();
+    const month = state.viewDate.getMonth();
+
+    const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+                        'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    document.getElementById('month-display').innerText = `${monthNames[month]} ${year}`;
+
+    ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'weekday'; el.innerText = d; grid.appendChild(el);
+    });
+
+    const firstDay  = new Date(year, month, 1).getDay();
+    const offset    = firstDay === 0 ? 6 : firstDay - 1;
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < offset; i++) grid.appendChild(document.createElement('div'));
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+
+    for (let d = 1; d <= totalDays; d++) {
+        const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dayEl   = document.createElement('div');
+        dayEl.className = 'day';
+        dayEl.innerText = d;
+
+        const cellDate  = new Date(year, month, d);
+        const shift     = state.schedule[dateKey];
+        const isPast    = isPastDay(dateKey);
+        const isCurDec  = isCurrentDecadeDate(dateKey);
+
+        if (shift) {
+            if (shift.type === 'work') {
+                dayEl.classList.add(shift.shiftType === 'night' ? 'shift-work-night' : 'shift-work-day');
+                const dot = document.createElement('div');
+                dot.className = `day-dot ${shift.shiftType === 'night' ? 'dot-work-night' : 'dot-work-day'}`;
+                dayEl.appendChild(dot);
+            } else {
+                dayEl.classList.add('shift-weekend');
+            }
+            // comment indicator
+            if (shift.comment) dayEl.classList.add('has-comment');
+            // pending marker for current-decade edits
+            if (shift.pending) dayEl.classList.add('pending-approval');
+        }
+
+        if (cellDate.toDateString() === today.toDateString()) dayEl.classList.add('today');
+
+        if (isPast) {
+            dayEl.classList.add('past-day');
+            dayEl.onclick = () => tg.showAlert('Прошедшие дни недоступны для редактирования.');
+        } else {
+            // Both current and next decade are editable
+            dayEl.onclick = () => openDay(dateKey);
+        }
+
+        grid.appendChild(dayEl);
+    }
+
+    updateStats();
+    updateDecadeUI();
+}
+
+// ── Stats ────────────────────────────────────────────────
+function updateStats() {
+    const year  = state.viewDate.getFullYear();
+    const month = String(state.viewDate.getMonth() + 1).padStart(2, '0');
+    const prefix = `${year}-${month}`;
+
+    let total = 0, day = 0, night = 0;
+    for (const date in state.schedule) {
+        if (!date.startsWith(prefix)) continue;
+        const s = state.schedule[date];
+        if (s.type === 'work') {
+            total++;
+            if (s.shiftType === 'day')   day++;
+            if (s.shiftType === 'night') night++;
+        }
+    }
+    document.getElementById('stat-total').innerText = total;
+    document.getElementById('stat-day').innerText   = day;
+    document.getElementById('stat-night').innerText = night;
+}
+
+// ── Temp selection state for sheet ──────────────────────
+let sheetSelection = { status: null };
+
+// ── Open Day Sheet ───────────────────────────────────────
+function openDay(dateKey) {
+    state.selectedDate = dateKey;
+    tg.HapticFeedback.impactOccurred('light');
+
+    const today    = new Date();
+    const curDec   = getDecadeOf(today);
+    const nextDec  = getNextDecadeOf(today);
+    const isCurDec = isCurrentDecadeDate(dateKey);
+
+    // Determine which decade this day belongs to for shift type display
+    const decadeForDay = isCurDec ? curDec : nextDec;
+    const decadeType   = getDecadeType(decadeForDay);
+
+    const shift = state.schedule[dateKey];
+
+    const dateLabel = new Date(dateKey).toLocaleDateString('ru-RU',
+        { day: 'numeric', month: 'long', weekday: 'long' });
+    document.getElementById('sheet-date').innerText = dateLabel;
+
+    // Work icon & subtitle
+    const sType = decadeType || 'day';
+    document.getElementById('work-icon').innerText = sType === 'night' ? '🌙' : '☀️';
+    const times   = ROLE_TIMES[state.role];
+    const timeStr = decadeType ? ` (${times[decadeType]})` : '';
+    document.getElementById('sheet-info').innerText =
+        `Смена декады: ${sType === 'night' ? 'Ночь' : 'День'}${timeStr}`;
+
+    // Show pending banner for current decade
+    const banner = document.getElementById('pending-banner');
+    banner.classList.toggle('show', isCurDec);
+
+    // Restore existing comment
+    document.getElementById('shift-comment').value = (shift && shift.comment) ? shift.comment : '';
+
+    // Init selection to current state
+    const currentStatus = (shift && shift.type === 'work') ? 'work' : 'weekend';
+    sheetSelection.status = currentStatus;
+    updateSheetButtons(currentStatus);
+
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('sheet').classList.add('open');
+}
+
+// ── Select status (just highlight, don't apply yet) ──────
+function selectStatus(status) {
+    sheetSelection.status = status;
+    updateSheetButtons(status);
+    tg.HapticFeedback.selectionChanged();
+}
+
+function updateSheetButtons(status) {
+    document.getElementById('btn-work').className =
+        'shift-choice-btn' + (status === 'work'    ? ' active-work'    : '');
+    document.getElementById('btn-weekend').className =
+        'shift-choice-btn' + (status === 'weekend' ? ' active-weekend' : '');
+}
+
+// ── Apply current selection from sheet ───────────────────
+function applyCurrentSelection() {
+    const status   = sheetSelection.status;
+    const comment  = document.getElementById('shift-comment').value.trim();
+    const isCurDec = isCurrentDecadeDate(state.selectedDate);
+
+    // For current decade: determine its type. For next: use next decade type.
+    const today = new Date();
+    let decadeType;
+    if (isCurDec) {
+        decadeType = getDecadeType(getDecadeOf(today)) || 'day';
+    } else {
+        decadeType = getDecadeType(getNextDecadeOf(today)) || 'day';
+    }
+    const times = ROLE_TIMES[state.role];
+
+    if (status === 'work') {
+        state.schedule[state.selectedDate] = {
+            type:      'work',
+            shiftType: decadeType,
+            time:      times[decadeType],
+            role:      state.role,
+            comment:   comment || null,
+            pending:   isCurDec  // mark as pending for current decade
+        };
+    } else {
+        state.schedule[state.selectedDate] = {
+            type:      'weekend',
+            shiftType: decadeType,
+            time:      '',
+            role:      state.role,
+            comment:   comment || null,
+            pending:   isCurDec
+        };
+    }
+
     closeSheet();
     renderCalendar();
-    tg.MainButton.show();
-    // Возвращаем видимость кнопок в шторке
-    document.querySelector('.btn-row').style.display = 'grid';
-}
-    function cancelShiftPrompt() {
-    // Вместо простого удаления открываем поле для ввода причины
-    document.getElementById('cancel-reason-box').style.display = 'block';
-    document.getElementById('btn-cancel-shift').style.display = 'none';
-    document.querySelector('.btn-row').style.display = 'none'; // Скрываем кнопки выбора
+    saveToLocal();
 }
 
-    function changeRole(newRole) {
-        // Проверяем, есть ли уже заполненные дни
-        const filledDays = Object.keys(state.schedule);
-        
-        if (filledDays.length > 0) {
-            // Проверяем, есть ли дни, роль которых отличается от новой
-            const hasDifferentRole = filledDays.some(date => state.schedule[date].role !== newRole);
-    
-            if (hasDifferentRole) {
-                tg.showPopup({
-                    title: 'Смена роли',
-                    message: `В графике есть смены для роли "${state.role}". Новые смены будут проставлены для "${newRole}". Что сделать с текущим графиком?`,
-                    buttons: [
-                        {id: 'keep', type: 'default', text: 'Оставить как есть'},
-                        {id: 'reset', type: 'destructive', text: 'Сбросить график'},
-                        {id: 'cancel', type: 'default', text: 'Отмена'}
-                    ]
-                }, (id) => {
-                    if (id === 'reset') {
-                        state.schedule = {};
-                        updateRole(newRole);
-                    } else if (id === 'keep') {
-                        updateRole(newRole);
-                    } else {
-                        // Возвращаем селект в старое положение
-                        document.getElementById('set-role').value = state.role;
-                    }
-                });
-                return;
+// ── Close Sheet ──────────────────────────────────────────
+function closeSheet() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('sheet').classList.remove('open');
+}
+
+// ── Move Month ───────────────────────────────────────────
+function moveMonth(dir) {
+    state.viewDate.setMonth(state.viewDate.getMonth() + dir);
+    renderCalendar();
+}
+
+// ── Role change ──────────────────────────────────────────
+function changeRole(newRole) {
+    const filledWorkDays = Object.keys(state.schedule).filter(k => state.schedule[k].type === 'work');
+    if (filledWorkDays.length > 0) {
+        tg.showPopup({
+            title: 'Смена роли',
+            message: `Изменить роль на «${newRole}»? Время смен обновится под новую роль.`,
+            buttons: [
+                { id: 'yes',    type: 'default',     text: 'Да, обновить' },
+                { id: 'cancel', type: 'destructive',  text: 'Отмена' }
+            ]
+        }, (id) => {
+            if (id === 'yes') {
+                updateRole(newRole, true);
+            } else {
+                document.getElementById('set-role').value = state.role;
+            }
+        });
+        return;
+    }
+    updateRole(newRole, false);
+}
+
+function updateRole(newRole, updateTimes) {
+    const times = ROLE_TIMES[newRole];
+    if (updateTimes) {
+        for (const key in state.schedule) {
+            const s = state.schedule[key];
+            if (s.type === 'work') {
+                state.schedule[key] = { ...s, time: times[s.shiftType], role: newRole };
             }
         }
-        updateRole(newRole);
     }
-    
-    // Вспомогательная функция для обновления стейта
-    function updateRole(newRole) {
-        state.role = newRole;
-        document.getElementById('ui-role').innerText = newRole;
-        document.getElementById('set-role').value = newRole;
+    state.role = newRole;
+    document.getElementById('ui-role').innerText  = newRole;
+    document.getElementById('set-role').value     = newRole;
+    renderCalendar();
+    saveToLocal();
+    tg.HapticFeedback.notificationOccurred('success');
+}
+
+// ── Settings ─────────────────────────────────────────────
+function openSettings()  { document.getElementById('settings-page').style.display = 'block'; }
+function closeSettings() { document.getElementById('settings-page').style.display = 'none'; }
+
+// ── Init ─────────────────────────────────────────────────
+function init() {
+    const params = new URLSearchParams(window.location.search);
+    let urlSchedule = {};
+
+    if (params.has('days')) {
+        try { urlSchedule = JSON.parse(params.get('days')); } catch(e) {}
+    }
+    if (params.has('name'))     state.name = params.get('name');
+    if (params.has('role'))     state.role = params.get('role');
+    if (params.has('district')) document.getElementById('set-district').value = params.get('district');
+
+    document.getElementById('ui-name').innerText = state.name;
+    document.getElementById('ui-role').innerText = state.role;
+    document.getElementById('set-role').value    = state.role;
+
+    // Migrate old format (type: 'day'|'night') → new format (type: 'work', shiftType: 'day'|'night')
+    const migrated = {};
+    for (const [key, val] of Object.entries(urlSchedule)) {
+        if (val.type === 'day' || val.type === 'night') {
+            migrated[key] = { type: 'work', shiftType: val.type, time: val.time, role: val.role };
+        } else if (val.type === 'cancelled') {
+            migrated[key] = { type: 'weekend', shiftType: 'day', time: '', role: val.role };
+        } else {
+            migrated[key] = val; // 'work' or 'weekend' — already correct
+        }
+    }
+    state.schedule = migrated;
+
+    // Infer decade types from existing schedule
+    inferDecadeTypesFromSchedule();
+
+    // Check for unsaved cache
+    const cached       = localStorage.getItem('cached_schedule');
+    const cachedDecade = localStorage.getItem('cached_decadeTypes');
+
+    if (cached) {
+        try {
+            const localData   = JSON.parse(cached);
+            const localDecade = cachedDecade ? JSON.parse(cachedDecade) : {};
+            const isDifferent = JSON.stringify(localData) !== JSON.stringify(state.schedule);
+
+            if (isDifferent) {
+                tg.showPopup({
+                    title: 'Несохраненные изменения',
+                    message: 'Найден несохраненный график. Восстановить?',
+                    buttons: [
+                        { id: 'restore', type: 'default',     text: 'Восстановить' },
+                        { id: 'discard', type: 'destructive', text: 'Сбросить' }
+                    ]
+                }, (id) => {
+                    if (id === 'restore') {
+                        state.schedule     = localData;
+                        state.decadeTypes  = localDecade;
+                        const cachedRole   = localStorage.getItem('cached_role');
+                        if (cachedRole) { state.role = cachedRole; document.getElementById('ui-role').innerText = state.role; document.getElementById('set-role').value = state.role; }
+                        tg.MainButton.show();
+                    } else {
+                        localStorage.removeItem('cached_schedule');
+                        localStorage.removeItem('cached_role');
+                        localStorage.removeItem('cached_decadeTypes');
+                    }
+                    renderCalendar();
+                });
+            } else {
+                state.decadeTypes = { ...state.decadeTypes, ...localDecade };
+                renderCalendar();
+            }
+        } catch(e) {
+            renderCalendar();
+        }
+    } else {
         renderCalendar();
-        tg.HapticFeedback.notificationOccurred('success');
-        tg.MainButton.show(); // Показываем кнопку сохранения, так как роль изменилась
     }
 
+    tg.MainButton.setParams({ text: 'СОХРАНИТЬ ГРАФИК', color: '#FF6E2D' });
+    tg.MainButton.onClick(() => {
+        // Convert internal format → backend format for saving
+        const backendDays = {};
+        for (const [key, val] of Object.entries(state.schedule)) {
+            if (val.type === 'work') {
+                backendDays[key] = {
+                    type:    val.shiftType,
+                    time:    val.time,
+                    role:    val.role,
+                    comment: val.comment || null,
+                    pending: val.pending || false
+                };
+            } else {
+                backendDays[key] = {
+                    type:    'weekend',
+                    time:    '',
+                    role:    val.role,
+                    comment: val.comment || null,
+                    pending: val.pending || false
+                };
+            }
+        }
+        const result = {
+            days:      JSON.stringify(backendDays),
+            role:      state.role,
+            district:  document.getElementById('set-district').value,
+            edited_at: new Date().toLocaleString()
+        };
+        tg.sendData(JSON.stringify(result));
+        localStorage.removeItem('cached_schedule');
+        localStorage.removeItem('cached_role');
+        localStorage.removeItem('cached_decadeTypes');
+    });
+}
 
-    function moveMonth(dir) {
-        state.viewDate.setMonth(state.viewDate.getMonth() + dir);
-        renderCalendar();
-    }
-
-    function closeSheet() {
-        document.getElementById('overlay').style.display = 'none';
-        document.getElementById('sheet').classList.remove('open');
-    }
-
-    function openSettings() { document.getElementById('settings-page').style.display = 'block'; }
-    function closeSettings() { document.getElementById('settings-page').style.display = 'none'; }
-
-    init();
+init();
 </script>
-    <div class="save-warning">
-    ⚠️ Чтобы сохранить изменения в базе, обязательно нажмите кнопку <b>«СОХРАНИТЬ ГРАФИК»</b> внизу экрана Telegram.
+
+<div class="save-warning">
+    ⚠️ Нажмите <b>«СОХРАНИТЬ ГРАФИК»</b> внизу Telegram, чтобы зафиксировать изменения.
 </div>
 </body>
 </html>
