@@ -18,6 +18,73 @@
             --border-color: #505A64;
             --danger-color: #FF3B30;
         }
+        /* Статистика */
+        .stats-bar {
+            display: flex; justify-content: space-around;
+            background: #323232; margin: 10px 15px; padding: 10px;
+            border-radius: 12px; border: 1px solid var(--border-color);
+        }
+        .stat-item { text-align: center; }
+        .stat-value { display: block; font-size: 16px; font-weight: 800; color: var(--primary-color); }
+        .stat-label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; }
+        
+        /* Прошлые дни */
+        .day.past-day { opacity: 0.4; filter: grayscale(1); }
+        
+        /* Кнопки дополнительных действий */
+        .extra-actions {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 15px 15px;
+        }
+        .btn-small {
+            padding: 8px; font-size: 11px; background: #3d3d3d; border: 1px solid var(--border-color);
+            color: white; border-radius: 8px; cursor: pointer;
+        }
+        
+        /* Форма диапазона */
+        #range-fill-box {
+            display: none; background: #282828; padding: 15px; border-radius: 12px; margin-top: 10px;
+        }
+        /* Баннер-предупреждение внизу */
+        .save-warning {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: rgba(254, 191, 48, 0.1);
+            border-top: 1px solid var(--secondary-color);
+            color: var(--secondary-color);
+            padding: 10px;
+            font-size: 11px;
+            text-align: center;
+            z-index: 50;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Поле ввода причины отмены */
+        #cancel-reason-box {
+            display: none;
+            margin-top: 15px;
+            background: #282828;
+            padding: 10px;
+            border-radius: 12px;
+        }
+        
+        #cancel-reason-box textarea {
+            width: 100%;
+            background: #404040;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 8px;
+            border-radius: 8px;
+            resize: none;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        
+        /* Стиль для отмененной смены в календаре */
+        .day.shift-cancelled {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--danger-color);
+            text-decoration: line-through;
+        }
         /* Иконка роли внутри дня */
         .role-badge {
             position: absolute;
@@ -129,7 +196,16 @@
         </div>
         <div class="settings-btn" onclick="openSettings()"><i class="fas fa-cog"></i></div>
     </div>
-
+    
+    <div class="stats-bar">
+        <div class="stat-item"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Смен</span></div>
+        <div class="stat-item"><span class="stat-value" id="stat-day">0</span><span class="stat-label">День</span></div>
+        <div class="stat-item"><span class="stat-value" id="stat-night">0</span><span class="stat-label">Ночь</span></div>
+    </div>
+    <div class="extra-actions">
+        <button class="btn-small" onclick="copyLastWeek()"><i class="fas fa-copy"></i> Повторить прошлую неделю</button>
+        <button class="btn-small" onclick="toggleRangeBox()"><i class="fas fa-calendar-plus"></i> Заполнить период</button>
+    </div>
     <div class="calendar-wrapper">
         <div class="month-nav">
             <div class="nav-btn" onclick="moveMonth(-1)"><i class="fas fa-chevron-left"></i></div>
@@ -194,9 +270,47 @@
 
         <button class="btn btn-danger" id="btn-cancel-shift" style="display: none;" onclick="cancelShiftPrompt()">УДАЛИТЬ СМЕНУ</button>
     </div>
+    <div id="cancel-reason-box">
+        <label style="font-size: 11px; color: var(--text-sec);">ПРИЧИНА ОТМЕНЫ:</label>
+        <textarea id="cancel-text" rows="2" placeholder="Напишите причину (приболел, сессия и т.д.)"></textarea>
+        <button class="btn btn-danger" style="margin-top: 10px;" onclick="confirmCancelShift()">ПОДТВЕРДИТЬ ОТМЕНУ</button>
+    </div>
+    <div id="range-fill-box">
+        <div style="font-size: 12px; margin-bottom: 10px;">Заполнить период такой же сменой:</div>
+        <div class="btn-row">
+            <div class="time-input-group">
+                <label>С</label>
+                <input type="date" id="range-start" style="background:#404040; border:1px solid #555; color:white; border-radius:8px; padding:5px;">
+            </div>
+            <div class="time-input-group">
+                <label>По</label>
+                <input type="date" id="range-end" style="background:#404040; border:1px solid #555; color:white; border-radius:8px; padding:5px;">
+            </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+            <button class="btn btn-primary" style="padding:8px" onclick="applyRange('day')">ДЕНЬ</button>
+            <button class="btn btn-secondary" style="padding:8px" onclick="applyRange('night')">НОЧЬ</button>
+        </div>
+    </div>
 </div>
 
 <script>
+    function saveToLocal() {
+    localStorage.setItem('cached_schedule', JSON.stringify(state.schedule));
+    localStorage.setItem('cached_role', state.role);
+    tg.MainButton.show(); // Показываем кнопку сохранения при любом изменении
+}
+
+// Загрузка из памяти (вызывать в конце init)
+function loadFromLocal() {
+    const cached = localStorage.getItem('cached_schedule');
+    if (cached) {
+        // Можно добавить логику: если данные в URL пустые, а в кеше есть - берем из кеша
+        const localData = JSON.parse(cached);
+        // Объединяем данные (приоритет кешу, если пользователь еще не нажал сохранить)
+        state.schedule = {...state.schedule, ...localData};
+    }
+}
     const tg = window.Telegram.WebApp;
     const ROLE_CONFIG = {
     'Charger': { day: '09:00 - 21:00', night: '21:00 - 09:00', icon: 'C' },
@@ -221,6 +335,13 @@
     };
 
     function init() {
+        loadFromLocal(); // Загружаем то, что пользователь натыкал ранее и не сохранил
+    
+        // Если в кеше была другая роль, подставляем её
+        const cachedRole = localStorage.getItem('cached_role');
+        if (cachedRole) state.role = cachedRole;
+    
+        renderCalendar();
         const params = new URLSearchParams(window.location.search);
         if (params.has('days')) state.schedule = JSON.parse(params.get('days'));
         if (params.has('name')) state.name = params.get('name');
@@ -241,7 +362,27 @@
                 edited_at: new Date().toLocaleString()
             };
             tg.sendData(JSON.stringify(result));
+            localStorage.removeItem('cached_schedule'); // Очищаем кеш, так как данные ушли в БД
         });
+    }
+    function updateStats() {
+        const year = state.viewDate.getFullYear();
+        const month = String(state.viewDate.getMonth() + 1).padStart(2, '0');
+        const prefix = `${year}-${month}`;
+        
+        let total = 0, day = 0, night = 0;
+        
+        for (let date in state.schedule) {
+            if (date.startsWith(prefix) && state.schedule[date].type !== 'cancelled') {
+                total++;
+                if (state.schedule[date].type === 'day') day++;
+                if (state.schedule[date].type === 'night') night++;
+            }
+        }
+        
+        document.getElementById('stat-total').innerText = total;
+        document.getElementById('stat-day').innerText = day;
+        document.getElementById('stat-night').innerText = night;
     }
 
     function renderCalendar() {
@@ -290,7 +431,95 @@
 
             dayEl.onclick = () => openDay(dateKey);
             grid.appendChild(dayEl);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const cellDate = new Date(year, month, d);
+            
+            if (cellDate < today) {
+                dayEl.classList.add('past-day');
+                dayEl.onclick = () => tg.showAlert("Редактирование прошлых смен запрещено");
+            } else {
+                dayEl.onclick = () => openDay(dateKey);
+            }
         }
+    updateStats();
+    }
+    function copyLastWeek() {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        // Копируем смены за последние 7 дней (до сегодня)
+        // И применяем их на следующие 7 дней (от сегодня)
+        for (let i = 1; i <= 7; i++) {
+            const pastDate = new Date();
+            pastDate.setDate(today.getDate() - (8 - i));
+            const pastKey = pastDate.toISOString().split('T')[0];
+            
+            const futureDate = new Date();
+            futureDate.setDate(today.getDate() + (i - 1));
+            const futureKey = futureDate.toISOString().split('T')[0];
+            
+            if (state.schedule[pastKey]) {
+                // Копируем тип смены, но используем ТЕКУЩУЮ роль
+                const shiftType = state.schedule[pastKey].type;
+                const times = ROLE_TIMES[state.role];
+                
+                state.schedule[futureKey] = {
+                    type: shiftType,
+                    time: shiftType === 'day' ? times.day : (shiftType === 'night' ? times.night : state.schedule[pastKey].time),
+                    role: state.role
+                };
+            }
+        }
+        renderCalendar();
+        saveToLocal();
+        tg.showAlert("Смены скопированы на неделю вперед!");
+    }
+    function toggleRangeBox() {
+        const box = document.getElementById('range-fill-box');
+        box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        // Прокрутим страницу вниз, чтобы увидеть форму
+        box.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    function applyRange(type) {
+        const startStr = document.getElementById('range-start').value;
+        const endStr = document.getElementById('range-end').value;
+        
+        if (!startStr || !endStr) {
+            tg.showAlert("Выберите начало и конец периода");
+            return;
+        }
+    
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+    
+        if (start > end) {
+            tg.showAlert("Дата начала не может быть больше даты конца");
+            return;
+        }
+    
+        const times = ROLE_TIMES[state.role];
+        let current = new Date(start);
+        
+        while (current <= end) {
+            if (current >= today) { // Только для будущих дат
+                const key = current.toISOString().split('T')[0];
+                state.schedule[key] = {
+                    type: type,
+                    time: type === 'day' ? times.day : times.night,
+                    role: state.role
+                };
+            }
+            current.setDate(current.getDate() + 1);
+        }
+        
+        toggleRangeBox();
+        renderCalendar();
+        saveToLocal();
+        tg.showAlert("Период заполнен!");
     }
 
     function openDay(date) {
@@ -344,27 +573,41 @@
         finishSelection();
     }
 
-    function finishSelection() {
-        closeSheet();
-        renderCalendar();
-        tg.MainButton.show();
+    function confirmCancelShift() {
+    const reason = document.getElementById('cancel-text').value.trim();
+    if (reason.length < 3) {
+        tg.showAlert("Пожалуйста, напишите причину отмены");
+        return;
     }
 
+    // Сохраняем как "отмененную" смену
+    state.schedule[state.selectedDate] = {
+        type: 'cancelled',
+        reason: reason,
+        role: state.role,
+        time: "ОТМЕНЕНА"
+    };
+
+    document.getElementById('cancel-text').value = ''; // Чистим поле
+    document.getElementById('cancel-reason-box').style.display = 'none';
+    finishSelection();
+    saveToLocal(); // Сразу в кеш
+}
+
+// В функции finishSelection добавьте очистку UI шторки
+function finishSelection() {
+    closeSheet();
+    renderCalendar();
+    tg.MainButton.show();
+    // Возвращаем видимость кнопок в шторке
+    document.querySelector('.btn-row').style.display = 'grid';
+}
     function cancelShiftPrompt() {
-        tg.showPopup({
-            title: 'Удалить смену?',
-            message: 'Смена будет стерта из графика.',
-            buttons: [
-                {id: 'del', type: 'destructive', text: 'Удалить'},
-                {id: 'cancel', type: 'default', text: 'Назад'}
-            ]
-        }, (id) => {
-            if(id === 'del') {
-                delete state.schedule[state.selectedDate];
-                finishSelection();
-            }
-        });
-    }
+    // Вместо простого удаления открываем поле для ввода причины
+    document.getElementById('cancel-reason-box').style.display = 'block';
+    document.getElementById('btn-cancel-shift').style.display = 'none';
+    document.querySelector('.btn-row').style.display = 'none'; // Скрываем кнопки выбора
+}
 
     function changeRole(newRole) {
         // Проверяем, есть ли уже заполненные дни
@@ -426,5 +669,8 @@
 
     init();
 </script>
+    <div class="save-warning">
+    ⚠️ Чтобы сохранить изменения в базе, обязательно нажмите кнопку <b>«СОХРАНИТЬ ГРАФИК»</b> внизу экрана Telegram.
+</div>
 </body>
 </html>
